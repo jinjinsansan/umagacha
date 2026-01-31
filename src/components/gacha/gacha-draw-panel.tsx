@@ -1,14 +1,21 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useTransition } from "react";
 import { Loader2, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 type DrawResult = {
+  horseId: string;
   horse: string;
   rarity: number;
+  cardImageUrl?: string | null;
   animation: string;
+  animationName?: string;
+  animationType?: string;
+  animationAssetUrl?: string | null;
+  isNew?: boolean;
 };
 
 type PullResponse = {
@@ -81,13 +88,29 @@ export function GachaDrawPanel({ gachaId }: Props) {
               <Card key={`${item.horse}-${idx}`} className="border-border/60 bg-background/70">
                 <CardHeader className="p-3">
                   <CardTitle className="flex items-center justify-between text-base">
-                    <span className="font-serif">{item.horse}</span>
+                    <span className="font-serif flex items-center gap-2">
+                      {item.cardImageUrl ? (
+                        <Image
+                          src={item.cardImageUrl}
+                          alt={item.horse}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 rounded-xl object-cover"
+                        />
+                      ) : null}
+                      {item.horse}
+                      {item.isNew ? (
+                        <span className="rounded-full bg-accent/20 px-2 py-1 text-[0.65rem] text-accent">
+                          NEW
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="flex items-center gap-1 text-accent text-sm">
                       <Ticket className="h-4 w-4" /> ★{item.rarity}
                     </span>
                   </CardTitle>
                   <CardDescription className="text-xs uppercase tracking-[0.2em] text-text-muted">
-                    演出: {item.animation}
+                    演出: {item.animationName ?? item.animation}
                   </CardDescription>
                 </CardHeader>
               </Card>

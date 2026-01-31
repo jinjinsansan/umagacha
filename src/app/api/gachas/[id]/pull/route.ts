@@ -7,9 +7,11 @@ import { pickWeighted } from "@/lib/utils/api";
 type DbGacha = Database["public"]["Tables"]["gachas"]["Row"] & {
   ticket_types: Pick<Database["public"]["Tables"]["ticket_types"]["Row"], "id" | "name" | "code" | "color">;
   gacha_rates: ({ rate: number } & {
-    horses: Pick<Database["public"]["Tables"]["horses"]["Row"], "id" | "name" | "rarity">;
+    horses: Pick<Database["public"]["Tables"]["horses"]["Row"], "id" | "name" | "rarity" | "card_image_url">;
   })[];
 };
+
+type DbAnimation = Database["public"]["Tables"]["gacha_animations"]["Row"];
 
 const FALLBACK_HORSES = [
   { id: "fallback-1", name: "ディープインパクト", rarity: 12 },
@@ -24,12 +26,32 @@ const FALLBACK_HORSES = [
   { id: "fallback-10", name: "地方馬A", rarity: 2 },
 ];
 
-function resolveAnimation(rarity: number) {
-  return (
-    GACHA_ANIMATIONS.find(
-      (anim) => rarity >= anim.rarityRange[0] && rarity <= anim.rarityRange[1]
-    )?.key ?? "g1"
+function resolveAnimation(rarity: number, animations: DbAnimation[]) {
+  const matched = animations.find(
+    (anim) => rarity >= anim.min_rarity && rarity <= anim.max_rarity && anim.is_active !== false
   );
+
+  if (matched) {
+    return {
+      key: matched.key,
+      name: matched.name,
+      type: matched.type ?? "css",
+      asset_url: matched.asset_url ?? null,
+      duration_seconds: matched.duration_seconds ?? null,
+    };
+  }
+
+  const fallback = GACHA_ANIMATIONS.find(
+    (anim) => rarity >= anim.rarityRange[0] && rarity <= anim.rarityRange[1]
+  );
+
+  return {
+    key: fallback?.key ?? "g1",
+    name: fallback?.name ?? "",
+    type: "css",
+    asset_url: null,
+    duration_seconds: fallback?.duration ?? null,
+  };
 }
 
 function fallbackResult(id: string, repeat: number) {
@@ -41,7 +63,7 @@ function fallbackResult(id: string, repeat: number) {
     return {
       horse: selection.name,
       rarity: selection.rarity,
-      animation: resolveAnimation(selection.rarity),
+      animation: resolveAnimation(selection.rarity, []).key,
       horseId: selection.id,
     };
   });
@@ -116,13 +138,25 @@ export async function POST(
       weight: Number(item.rate) || 0,
     }));
 
+  const { data: animations } = await supabase
+    .from("gacha_animations")
+    .select(
+      "id, key, name, min_rarity, max_rarity, duration_seconds, asset_url, type, is_active, sort_order, created_at"
+    )
+    .order("sort_order", { ascending: true });
+
   const results = Array.from({ length: repeat }).map(() => {
     const picked = pickWeighted(candidates) ?? FALLBACK_HORSES[0];
+    const animation = resolveAnimation(picked.rarity, animations ?? []);
     return {
       horseId: picked.id,
       horse: picked.name,
       rarity: picked.rarity,
-      animation: resolveAnimation(picked.rarity),
+      cardImageUrl: ("card_image_url" in picked ? (picked as { card_image_url?: string | null }).card_image_url : null) ?? null,
+      animation: animation.key,
+      animationName: animation.name,
+      animationType: animation.type,
+      animationAssetUrl: animation.asset_url,
     };
   });
 
@@ -143,6 +177,7 @@ export async function POST(
   }, {});
 
   const horseIds = Object.keys(byHorse);
+  let isNewMap = new Map<string, boolean>();
   if (horseIds.length > 0) {
     const existing = await supabase
       .from("user_collections")
@@ -153,6 +188,8 @@ export async function POST(
     const currentMap = new Map<string, number>(
       existing.data?.map((row) => [row.horse_id, row.quantity ?? 0]) ?? []
     );
+
+    isNewMap = new Map(horseIds.map((id) => [id, !currentMap.has(id)]));
 
     const upserts = horseIds.map((horseId) => ({
       user_id: user.id,
@@ -170,13 +207,23 @@ export async function POST(
     }
   }
 
-  // Insert history
-  const historyRows = results.map((result) => ({
-    user_id: user.id,
-    gacha_id: gacha.id,
-    horse_id: result.horseId,
-    animation_type: GACHA_ANIMATIONS.findIndex((anim) => anim.key === result.animation) + 1,
+  const enrichedResults = results.map((r) => ({
+    ...r,
+    isNew: isNewMap.get(r.horseId) ?? false,
   }));
+
+  // Insert history
+  const historyRows = results.map((result) => {
+    const animIndexDb = animations ? animations.findIndex((anim) => anim.key === result.animation) : -1;
+    const animIndexConst = GACHA_ANIMATIONS.findIndex((anim) => anim.key === result.animation);
+
+    return {
+      user_id: user.id,
+      gacha_id: gacha.id,
+      horse_id: result.horseId,
+      animation_type: (animIndexDb >= 0 ? animIndexDb : animIndexConst) + 1,
+    };
+  });
 
   const { error: historyError } = await supabase.from("gacha_history").insert(historyRows);
   if (historyError) {
@@ -187,7 +234,7 @@ export async function POST(
     NextResponse.json(
       {
         ticket: gacha.ticket_types.name,
-        results,
+        results: enrichedResults,
         remaining: balances.quantity - repeat,
       },
       { status: 200 }
