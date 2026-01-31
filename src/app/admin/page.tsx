@@ -96,7 +96,15 @@ export default async function AdminPage() {
   await requireAdminSession();
   const svc = getSupabaseServiceClient();
 
-  const [{ data: horses }, { data: gachas }, { data: animations }, { data: users }] = await Promise.all([
+  type AdminGacha = {
+    id: string;
+    name: string;
+    ticket_types?: { code?: string | null; name?: string | null } | null;
+    min_rarity?: number | null;
+    max_rarity?: number | null;
+  };
+
+  const [horsesResp, gachasResp, animationsResp, usersResp] = await Promise.all([
     svc.from("horses").select("id, name, rarity").order("rarity"),
     svc
       .from("gachas")
@@ -105,6 +113,11 @@ export default async function AdminPage() {
     svc.from("gacha_animations").select("id, key, name, min_rarity, max_rarity, type").order("sort_order"),
     svc.auth.admin.listUsers({ page: 1, perPage: 50 }),
   ]);
+
+  const horses = horsesResp.data ?? [];
+  const gachas = ((gachasResp as unknown) as { data?: AdminGacha[] }).data ?? [];
+  const animations = animationsResp.data ?? [];
+  const users = usersResp.data?.users ?? [];
 
   return (
     <div className="space-y-6">
@@ -196,12 +209,12 @@ export default async function AdminPage() {
           </CardHeader>
           <CardContent className="p-0 pt-4 text-sm text-text-muted">
             <ul className="space-y-2">
-              {users?.users?.map((u) => (
+              {(users.length === 0 ? [{ id: "none", email: "ユーザーがいません" }] : users).map((u) => (
                 <li key={u.id} className="rounded-lg border border-border px-3 py-2">
                   <div className="font-semibold">{u.email}</div>
                   <div className="text-xs">{u.id}</div>
                 </li>
-              )) ?? <li>ユーザーがいません</li>}
+              ))}
             </ul>
           </CardContent>
         </Card>
