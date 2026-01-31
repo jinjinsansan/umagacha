@@ -213,6 +213,48 @@ export type Database = {
           }
         ];
       };
+      gacha_animations: {
+        Row: {
+          id: string;
+          key: string;
+          name: string;
+          min_rarity: number;
+          max_rarity: number;
+          duration_seconds: number | null;
+          asset_url: string | null;
+          type: string | null;
+          is_active: boolean | null;
+          sort_order: number | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          key: string;
+          name: string;
+          min_rarity: number;
+          max_rarity: number;
+          duration_seconds?: number | null;
+          asset_url?: string | null;
+          type?: string | null;
+          is_active?: boolean | null;
+          sort_order?: number | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          key?: string;
+          name?: string;
+          min_rarity?: number;
+          max_rarity?: number;
+          duration_seconds?: number | null;
+          asset_url?: string | null;
+          type?: string | null;
+          is_active?: boolean | null;
+          sort_order?: number | null;
+          created_at?: string | null;
+        };
+        Relationships: [];
+      };
       ticket_types: {
         Row: {
           id: string;
