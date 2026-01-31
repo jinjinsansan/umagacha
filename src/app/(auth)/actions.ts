@@ -1,0 +1,87 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { publicEnv } from "@/lib/env";
+
+export type AuthActionState = {
+  status: "idle" | "error";
+  message?: string;
+};
+
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const registerSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(6),
+    confirmPassword: z.string().min(6),
+    acceptTerms: z.coerce.boolean().optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "パスワードが一致しません",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.acceptTerms, {
+    message: "利用規約への同意が必要です",
+    path: ["acceptTerms"],
+  });
+
+export async function signInAction(
+  _: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const parsed = loginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+
+  if (!parsed.success) {
+    return { status: "error", message: "メールアドレスとパスワードを確認してください" };
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  redirect("/home");
+}
+
+export async function signUpAction(
+  _: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const parsed = registerSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    acceptTerms: formData.get("acceptTerms"),
+  });
+
+  if (!parsed.success) {
+    const firstError = parsed.error.errors[0]?.message ?? "入力内容を確認してください";
+    return { status: "error", message: firstError };
+  }
+
+  const supabase = getSupabaseServerClient();
+  const { error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      emailRedirectTo: `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  redirect("/home");
+}

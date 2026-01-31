@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --color-primary: #1a1a2e;
+  --color-secondary: #4a1942;
+  --color-accent: #d4af37;
+  --color-background: #0d0d0d;
+  --color-surface: #141418;
+  --color-border: rgba(212, 175, 55, 0.25);
+  --color-text: #ffffff;
+  --color-text-muted: #b0b0b0;
+  --color-gacha-free: #1a472a;
+  --color-gacha-basic: #b8860b;
+  --color-gacha-epic: #cd7f32;
+  --color-gacha-premium: #8b0000;
+  --color-gacha-ex: #4b0082;
+}
+
+@theme inline {
+  --color-primary: #1a1a2e;
+  --color-secondary: #4a1942;
+  --color-accent: #d4af37;
+  --color-background: #0d0d0d;
+  --color-surface: #141418;
+  --color-border: rgba(212, 175, 55, 0.25);
+  --color-text: #ffffff;
+  --color-text-muted: #b0b0b0;
+  --color-gacha-free: #1a472a;
+  --color-gacha-basic: #b8860b;
+  --color-gacha-epic: #cd7f32;
+  --color-gacha-premium: #8b0000;
+  --color-gacha-ex: #4b0082;
+  --font-sans: var(--font-noto-sans, "Noto Sans JP", sans-serif);
+  --font-serif: var(--font-playfair, "Playfair Display", serif);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-noto-sans, "Noto Sans JP", sans-serif);
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: #0b0b0b;
+}
