@@ -1,13 +1,5 @@
 import type { GachaDefinition } from "@/constants/gacha";
-import { publicEnv } from "@/lib/env";
-
-function resolveApiUrl(path: string) {
-  if (typeof window === "undefined") {
-    const origin = publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    return `${origin}${path}`;
-  }
-  return path;
-}
+import { resolveApiUrl } from "@/lib/utils/api";
 
 export async function fetchGachaCatalog(): Promise<GachaDefinition[]> {
   const endpoint = resolveApiUrl("/api/gachas");
@@ -17,7 +9,8 @@ export async function fetchGachaCatalog(): Promise<GachaDefinition[]> {
     throw new Error("ガチャ一覧の取得に失敗しました");
   }
 
-  return response.json();
+  const data = await response.json();
+  return Array.isArray(data) ? data : data?.gachas ?? [];
 }
 
 export async function pullGacha(id: string) {

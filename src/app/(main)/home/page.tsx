@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ExternalLink } from "lucide-react";
 import { Header } from "@/components/layout/header";
 import {
   Card,
@@ -9,49 +9,75 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { fetchGachaCatalog } from "@/lib/utils/gacha";
 import { LoginBonusCard } from "@/components/home/login-bonus-card";
+import { fetchGachaCatalog } from "@/lib/utils/gacha";
+import { fetchTicketBalances, type TicketBalanceItem } from "@/lib/utils/tickets";
+import { TICKET_THEMES, type TicketCode } from "@/constants/tickets";
 
-const tickets = [
-  { label: "FREE", amount: 3, color: "bg-gacha-free" },
-  { label: "BASIC", amount: 5, color: "bg-gacha-basic" },
-  { label: "EPIC", amount: 1, color: "bg-gacha-epic" },
-  { label: "PREMIUM", amount: 0, color: "bg-gacha-premium" },
-  { label: "EX", amount: 0, color: "bg-gacha-ex" },
+const FALLBACK_TICKETS: TicketBalanceItem[] = [
+  { code: "free", name: "フリーチケット", quantity: 0, colorToken: "gacha-free", sortOrder: 0 },
+  { code: "basic", name: "ベーシック", quantity: 0, colorToken: "gacha-basic", sortOrder: 1 },
+  { code: "epic", name: "エピック", quantity: 0, colorToken: "gacha-epic", sortOrder: 2 },
+  { code: "premium", name: "プレミアム", quantity: 0, colorToken: "gacha-premium", sortOrder: 3 },
+  { code: "ex", name: "EX", quantity: 0, colorToken: "gacha-ex", sortOrder: 4 },
 ];
 
 function formatRarity([min, max]: [number, number]) {
   return `★${min}〜${max}`;
 }
 
+function formatTicketCode(code: string) {
+  return code.toUpperCase();
+}
+
+function getTicketTheme(code: string) {
+  return TICKET_THEMES[code as TicketCode] ?? {
+    gradient: "from-white/10 to-background",
+    badge: "text-text-muted",
+  };
+}
+
 export default async function HomePage() {
-  const gachaTiers = await fetchGachaCatalog();
+  const [ticketBalances, gachaTiers] = await Promise.all([
+    fetchTicketBalances().catch(() => FALLBACK_TICKETS),
+    fetchGachaCatalog(),
+  ]);
+
+  const tickets = ticketBalances.length > 0 ? ticketBalances : FALLBACK_TICKETS;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Header title="ホーム" subtitle="ログインボーナスを受け取り、好きなガチャを選択" />
 
       <section className="space-y-4">
         <div className="flex items-center justify-between text-xs text-text-muted">
           <span>本日のチケット残高</span>
-          <Link href="/menu" className="text-accent">履歴を見る</Link>
+          <Link href="/menu" className="text-accent">
+            履歴を見る
+          </Link>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          {tickets.map((ticket) => (
-            <div
-              key={ticket.label}
-              className="rounded-2xl border border-border bg-background/70 px-3 py-4 text-center"
-            >
-              <p className="text-[0.6rem] tracking-[0.4em] text-text-muted">{ticket.label}</p>
-              <p className="mt-2 text-2xl font-semibold">{ticket.amount}</p>
-            </div>
-          ))}
+        <div className="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {tickets.map((ticket) => {
+            const theme = getTicketTheme(ticket.code);
+            return (
+              <div
+                key={ticket.code}
+                className={`min-w-[160px] snap-start rounded-3xl border border-border bg-gradient-to-br ${theme.gradient} px-4 py-4`}
+              >
+                <p className={`text-[0.55rem] tracking-[0.4em] ${theme.badge}`}>
+                  {formatTicketCode(ticket.code)}
+                </p>
+                <p className="mt-4 text-3xl font-semibold">{ticket.quantity}</p>
+                <p className="text-sm text-text-muted">{ticket.name}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
       <LoginBonusCard />
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-text-muted">ガチャラインナップ</p>
           <Link href="/gacha" className="text-xs text-accent underline-offset-4 hover:underline">
@@ -66,24 +92,46 @@ export default async function HomePage() {
             >
               <CardHeader className="p-0">
                 <CardTitle className="flex items-center justify-between">
-                  <span>{tier.name}ガチャ</span>
+                  <span className="font-serif text-2xl">{tier.name}ガチャ</span>
                   <span className="text-sm text-accent">{formatRarity(tier.rarityRange)}</span>
                 </CardTitle>
                 <CardDescription>{tier.description}</CardDescription>
               </CardHeader>
-              <CardContent className="mt-5 flex items-center justify-between p-0">
-                <div className="text-xs text-text-muted">{tier.ticketLabel}</div>
-                <Button variant="ghost" asChild>
-                  <Link href={`/gacha/${tier.id}`} className="flex items-center gap-1 text-accent">
-                    回す
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
+              <CardContent className="mt-5 space-y-4 p-0">
+                {tier.featuredNote && (
+                  <p className="text-xs uppercase tracking-[0.3em] text-accent">{tier.featuredNote}</p>
+                )}
+                <div className="flex items-center gap-2 text-xs text-text-muted">
+                  <span>{tier.ticketLabel}</span>
+                  <span className="flex items-center gap-1">
+                    <ArrowRight className="h-3 w-3" />
+                    {tier.priceLabel}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm">
+                    <Link href={`/gacha/${tier.id}`}>1回ガチャ</Link>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/gacha/${tier.id}?mode=multi`}>10連ガチャ</Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href={`/gacha/${tier.id}#rates`} className="text-xs">
+                      提供割合
+                    </Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
+
+      <Button asChild className="h-14 w-full text-base">
+        <Link href="/menu">
+          チケット購入 <ExternalLink className="ml-2 h-4 w-4" />
+        </Link>
+      </Button>
     </div>
   );
 }
