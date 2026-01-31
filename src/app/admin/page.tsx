@@ -63,6 +63,68 @@ async function upsertRate(formData: FormData) {
   revalidatePath("/admin");
 }
 
+async function upsertGacha(formData: FormData) {
+  "use server";
+  await requireAdminSession();
+  const svc = getSupabaseServiceClient();
+
+  const name = String(formData.get("gacha_name") ?? "").trim();
+  const ticket_type_id = String(formData.get("ticket_type_id") ?? "");
+  const min_rarity = Number(formData.get("min_rarity") ?? 1);
+  const max_rarity = Number(formData.get("max_rarity") ?? min_rarity);
+  const sort_order = Number(formData.get("sort_order") ?? 0) || 0;
+  const is_active = formData.get("is_active") === "on";
+
+  if (!name || !ticket_type_id) return;
+
+  await svc.from("gachas").insert({
+    name,
+    ticket_type_id,
+    min_rarity,
+    max_rarity,
+    is_active,
+    sort_order,
+  });
+
+  revalidatePath("/admin");
+}
+
+async function importRatesCsv(formData: FormData) {
+  "use server";
+  await requireAdminSession();
+  const svc = getSupabaseServiceClient();
+
+  const gacha_id = String(formData.get("csv_gacha_id") ?? "");
+  const raw = String(formData.get("csv_data") ?? "").trim();
+  if (!gacha_id || !raw) return;
+
+  const rows = raw
+    .split(/\r?\n/)
+    .map((line) => line.split(/[,\s]+/).filter(Boolean))
+    .filter((cols) => cols.length >= 2)
+    .map(([horse_id, rate]) => ({ gacha_id, horse_id, rate: Number(rate) }));
+
+  if (rows.length === 0) return;
+  await svc.from("gacha_rates").upsert(rows, { onConflict: "gacha_id,horse_id" });
+  revalidatePath("/admin");
+}
+
+async function toggleMaintenance(formData: FormData) {
+  "use server";
+  await requireAdminSession();
+  const svc = getSupabaseServiceClient();
+  const enabled = formData.get("maintenance_enabled") === "on";
+  const message = String(formData.get("maintenance_message") ?? "").trim();
+
+  await svc.from("app_settings").upsert({
+    key: "maintenance",
+    value: { enabled, message },
+    updated_at: new Date().toISOString(),
+  });
+
+  revalidatePath("/admin");
+}
+
 async function addAnimation(formData: FormData) {
   "use server";
   await requireAdminSession();
@@ -104,20 +166,53 @@ export default async function AdminPage() {
     max_rarity?: number | null;
   };
 
-  const [horsesResp, gachasResp, animationsResp, usersResp] = await Promise.all([
-    svc.from("horses").select("id, name, rarity").order("rarity"),
-    svc
-      .from("gachas")
-      .select("id, name, ticket_types(name, code), min_rarity, max_rarity")
-      .order("sort_order"),
-    svc.from("gacha_animations").select("id, key, name, min_rarity, max_rarity, type").order("sort_order"),
-    svc.auth.admin.listUsers({ page: 1, perPage: 50 }),
-  ]);
+  type RateRow = {
+    gacha_id: string;
+    rate: number;
+    horses: { name: string; rarity: number } | null;
+    gachas: { name: string } | null;
+  };
+
+  const [horsesResp, gachasResp, animationsResp, usersResp, ticketTypesResp, ratesResp, maintenanceResp] =
+    await Promise.all([
+      svc.from("horses").select("id, name, rarity, card_image_url").order("rarity"),
+      svc
+        .from("gachas")
+        .select("id, name, ticket_types(name, code), min_rarity, max_rarity, is_active, sort_order")
+        .order("sort_order"),
+      svc
+        .from("gacha_animations")
+        .select("id, key, name, min_rarity, max_rarity, type")
+        .order("sort_order"),
+      svc.auth.admin.listUsers({ page: 1, perPage: 50 }),
+      svc.from("ticket_types").select("id, name, code").order("code"),
+      svc
+        .from("gacha_rates")
+        .select("gacha_id, rate, horses(name, rarity), gachas(name)")
+        .order("rate", { ascending: false })
+        .returns<RateRow[]>(),
+      svc.from("app_settings").select("value").eq("key", "maintenance").maybeSingle(),
+    ]);
 
   const horses = horsesResp.data ?? [];
   const gachas = ((gachasResp as unknown) as { data?: AdminGacha[] }).data ?? [];
   const animations = animationsResp.data ?? [];
   const users = usersResp.data?.users ?? [];
+  const ticketTypes = ticketTypesResp.data ?? [];
+  const rates = ratesResp.data ?? [];
+  const maintenance = (maintenanceResp.data?.value as { enabled?: boolean; message?: string } | null) ?? {
+    enabled: false,
+    message: "",
+  };
+
+  const rtp = gachas.map((g) => {
+    const entries = rates.filter((r) => r.gacha_id === g.id);
+    const totalWeight = entries.reduce((sum, r) => sum + (Number(r.rate) || 0), 0);
+    return {
+      gacha: g,
+      totalWeight,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -153,6 +248,35 @@ export default async function AdminPage() {
 
         <Card>
           <CardHeader className="p-0">
+            <CardTitle>ガチャ作成</CardTitle>
+            <CardDescription>チケット種別とレア度レンジを指定して追加。</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 pt-4">
+            <form action={upsertGacha} className="grid gap-3">
+              <Input name="gacha_name" placeholder="ガチャ名" required />
+              <select name="ticket_type_id" className="rounded-lg bg-background px-3 py-2" required>
+                <option value="">チケット種別を選択</option>
+                {ticketTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.code})
+                  </option>
+                ))}
+              </select>
+              <div className="grid grid-cols-2 gap-3">
+                <Input name="min_rarity" type="number" min={1} max={12} placeholder="最小レア" required />
+                <Input name="max_rarity" type="number" min={1} max={12} placeholder="最大レア" required />
+              </div>
+              <Input name="sort_order" type="number" min={0} placeholder="並び順 (0〜)" />
+              <label className="flex items-center gap-2 text-sm text-text-muted">
+                <input type="checkbox" name="is_active" defaultChecked /> 有効にする
+              </label>
+              <Button type="submit">ガチャを追加</Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="p-0">
             <CardTitle>提供割合（ガチャ×馬）</CardTitle>
             <CardDescription>ガチャに馬を紐付け、rate は重み（合計は任意）。</CardDescription>
           </CardHeader>
@@ -177,6 +301,28 @@ export default async function AdminPage() {
               <Input name="rate" type="number" step="0.01" min={0} placeholder="重み (例: 25)" required />
               <Button type="submit">追加 / 更新</Button>
             </form>
+            <div className="mt-4 space-y-2 text-sm text-text-muted">
+              <p className="text-xs text-text-muted">CSVインポート (行: horse_id,rate)</p>
+              <form action={importRatesCsv} className="grid gap-2">
+                <select name="csv_gacha_id" className="rounded-lg bg-background px-3 py-2" required>
+                  <option value="">ガチャを選択</option>
+                  {gachas?.map((gacha) => (
+                    <option key={gacha.id} value={gacha.id}>
+                      {gacha.name} ({gacha.ticket_types?.code})
+                    </option>
+                  ))}
+                </select>
+                <textarea
+                  name="csv_data"
+                  className="min-h-[120px] rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  placeholder="horse-id-1,25\nhorse-id-2,5"
+                  required
+                ></textarea>
+                <Button type="submit" variant="outline">
+                  CSVを反映
+                </Button>
+              </form>
+            </div>
           </CardContent>
         </Card>
 
@@ -199,6 +345,41 @@ export default async function AdminPage() {
               <Button type="submit">登録 / 更新</Button>
             </form>
             <div className="mt-4 text-sm text-text-muted">登録演出: {animations?.length ?? 0}件</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="p-0">
+            <CardTitle>メンテナンス / RTP</CardTitle>
+            <CardDescription>全体メンテナンスの切替と提供割合の合計を確認。</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 pt-4 space-y-3">
+            <form action={toggleMaintenance} className="grid gap-2 rounded-lg border border-border px-3 py-3">
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="maintenance_enabled" defaultChecked={maintenance.enabled} />
+                メンテナンスモード
+              </label>
+              <Input
+                name="maintenance_message"
+                placeholder="メンテナンス告知 (任意)"
+                defaultValue={maintenance.message ?? ""}
+              />
+              <Button type="submit" variant="outline">
+                保存
+              </Button>
+            </form>
+
+            <div className="space-y-2 rounded-lg border border-border px-3 py-3 text-sm text-text-muted">
+              <p className="text-xs uppercase tracking-[0.3em] text-text-muted">RTP overview</p>
+              {rtp.map((item) => (
+                <div key={item.gacha.id} className="flex items-center justify-between">
+                  <span>
+                    {item.gacha.name} ({item.gacha.ticket_types?.code})
+                  </span>
+                  <span className="text-accent text-xs">合計rate: {item.totalWeight}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 

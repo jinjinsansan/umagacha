@@ -125,6 +125,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      app_settings: {
+        Row: {
+          key: string;
+          value: Json | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          key: string;
+          value?: Json | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          key?: string;
+          value?: Json | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
       user_collections: {
         Row: {
           id: string;
