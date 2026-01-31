@@ -44,7 +44,7 @@ export async function signInAction(
     return { status: "error", message: "メールアドレスとパスワードを確認してください" };
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
@@ -66,11 +66,11 @@ export async function signUpAction(
   });
 
   if (!parsed.success) {
-    const firstError = parsed.error.errors[0]?.message ?? "入力内容を確認してください";
+    const firstError = parsed.error.issues[0]?.message ?? "入力内容を確認してください";
     return { status: "error", message: firstError };
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,

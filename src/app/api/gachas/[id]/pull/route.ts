@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { GACHA_ANIMATIONS, GACHA_DEFINITIONS } from "@/constants/gacha";
 
 const MOCK_HORSES = [
@@ -15,10 +15,11 @@ const MOCK_HORSES = [
 ];
 
 export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const gacha = GACHA_DEFINITIONS.find((item) => item.id === params.id);
+  const { id } = await context.params;
+  const gacha = GACHA_DEFINITIONS.find((item) => item.id === id);
   if (!gacha) {
     return NextResponse.json({ error: "Gacha not found" }, { status: 404 });
   }
