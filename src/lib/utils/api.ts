@@ -8,3 +8,14 @@ export function resolveApiUrl(path: string) {
 
   return path;
 }
+
+export function pickWeighted<T>(items: { item: T; weight: number }[]): T | null {
+  const total = items.reduce((sum, entry) => sum + entry.weight, 0);
+  if (total <= 0) return null;
+  let rand = Math.random() * total;
+  for (const entry of items) {
+    rand -= entry.weight;
+    if (rand <= 0) return entry.item;
+  }
+  return items.at(-1)?.item ?? null;
+}
