@@ -3,7 +3,7 @@ import { SplashGateway } from "@/components/auth/splash-gateway";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function LandingPage() {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();

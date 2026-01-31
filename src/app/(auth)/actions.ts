@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseActionClient } from "@/lib/supabase/server";
 import { publicEnv } from "@/lib/env";
 
 export type AuthActionState = {
@@ -44,7 +44,7 @@ export async function signInAction(
     return { status: "error", message: "メールアドレスとパスワードを確認してください" };
   }
 
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseActionClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
@@ -70,7 +70,7 @@ export async function signUpAction(
     return { status: "error", message: firstError };
   }
 
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseActionClient();
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,

@@ -5,7 +5,7 @@ import { RegisterForm } from "@/components/auth/register-form";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function RegisterPage() {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();

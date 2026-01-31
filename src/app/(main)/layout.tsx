@@ -23,7 +23,7 @@ type MainLayoutProps = {
 };
 
 export default async function MainLayout({ children }: MainLayoutProps) {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();

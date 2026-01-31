@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import { publicEnv } from "@/lib/env";
@@ -19,14 +19,13 @@ export function createSupabaseMiddlewareClient(
     publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll().map(({ name, value }) => ({ name, value }));
         },
-        set(name: string, value: string, options) {
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options) {
-          response.cookies.set({ name, value: "", ...options, maxAge: 0 });
+        setAll(cookies) {
+          cookies.forEach(({ name, value, options }) => {
+            response.cookies.set({ name, value, ...options });
+          });
         },
       },
     }
