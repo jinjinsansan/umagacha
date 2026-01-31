@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { GachaAnimationPreview } from "@/components/gacha/gacha-animation";
 import { GachaDrawPanel } from "@/components/gacha/gacha-draw-panel";
+import { GachaHistory } from "@/components/gacha/gacha-history";
 import { fetchGachaCatalog } from "@/lib/utils/gacha";
 
 type Params = {
@@ -83,6 +84,8 @@ export default async function GachaDetailPage({ params }: Params) {
       <Card className="p-4">
         <GachaAnimationPreview animation={selectAnimation(detail.rarityRange)} />
       </Card>
+
+      <GachaHistory title="直近のガチャ履歴" limit={10} />
     </div>
   );
 }
