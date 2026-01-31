@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Ticket } from "lucide-react";
 import {
   Card,
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 
 type BonusState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "success" | "error" | "claimed";
   message?: string;
   nextResetAt?: string;
 };
@@ -22,6 +22,29 @@ export function LoginBonusCard() {
   const [claiming, setClaiming] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [state, setState] = useState<BonusState>({ status: "idle" });
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/tickets/bonus")
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "取得に失敗しました");
+        return data;
+      })
+      .then((data) => {
+        if (!mounted) return;
+        if (data.claimed) {
+          setState({ status: "claimed", nextResetAt: data.nextResetAt });
+        }
+      })
+      .catch(() => {
+        /* ignore */
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleClaim = async () => {
     setClaiming(true);
@@ -55,14 +78,19 @@ export function LoginBonusCard() {
             <p className="text-4xl font-serif">+1</p>
             <p className="text-sm text-text-muted">FREE TICKET</p>
           </div>
-          <Button variant="gold" className="px-6" onClick={handleClaim} disabled={claiming}>
-            {claiming ? "付与中..." : "受け取る"}
+          <Button
+            variant="gold"
+            className="px-6"
+            onClick={handleClaim}
+            disabled={claiming || state.status === "claimed"}
+          >
+            {state.status === "claimed" ? "受取済" : claiming ? "付与中..." : "受け取る"}
           </Button>
         </CardContent>
       </Card>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="ログインボーナス">
-        {state.status === "success" ? (
+        {state.status === "success" || state.status === "claimed" ? (
           <div className="space-y-3 text-center">
             <p className="text-4xl font-serif text-accent">+1</p>
             <p className="text-sm text-text-muted">{state.message ?? "フリーチケットを付与しました"}</p>
