@@ -7,8 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { GachaAnimationPreview } from "@/components/gacha/gacha-animation";
+import { GachaDrawPanel } from "@/components/gacha/gacha-draw-panel";
 import { fetchGachaCatalog } from "@/lib/utils/gacha";
 
 type Params = {
@@ -47,11 +47,8 @@ export default async function GachaDetailPage({ params }: Params) {
           <CardTitle className="text-3xl font-serif">{detail.ticketLabel}</CardTitle>
           <CardDescription>価格: {detail.priceLabel}</CardDescription>
         </CardHeader>
-        <CardContent className="mt-5 grid gap-3 p-0 sm:grid-cols-2">
-          <Button className="w-full">1回ガチャ</Button>
-          <Button variant="outline" className="w-full">
-            10連ガチャ
-          </Button>
+        <CardContent className="mt-5 p-0">
+          <GachaDrawPanel gachaId={detail.id} />
         </CardContent>
       </Card>
 
