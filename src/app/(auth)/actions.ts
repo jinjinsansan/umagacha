@@ -85,3 +85,9 @@ export async function signUpAction(
 
   redirect("/home");
 }
+
+export async function signOutAction() {
+  const supabase = getSupabaseActionClient();
+  await supabase.auth.signOut();
+  redirect("/login");
+}

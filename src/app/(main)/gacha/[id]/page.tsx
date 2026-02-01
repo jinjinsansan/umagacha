@@ -29,7 +29,14 @@ function selectAnimation(range: [number, number]) {
 }
 
 export default async function GachaDetailPage({ params }: Params) {
-  const catalog = await fetchGachaCatalog();
+  type RateRow = { name: string; rarity: number; rate: number };
+
+  const [catalog, ratesResp] = await Promise.all([
+    fetchGachaCatalog(),
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/gachas/${params.id}/rates`, {
+      cache: "no-store",
+    }).then(async (res) => res.json().catch(() => ({ rates: [] }))),
+  ]);
   const detail = catalog.find((item) => item.id === params.id);
 
   if (!detail) {
@@ -56,15 +63,21 @@ export default async function GachaDetailPage({ params }: Params) {
       <Card>
         <CardHeader className="p-0">
           <CardTitle>提供割合</CardTitle>
-          <CardDescription>APIレスポンスと同期予定のダミーデータです。</CardDescription>
+          <CardDescription>DBに登録された提供割合を表示します。</CardDescription>
         </CardHeader>
         <CardContent className="mt-4 space-y-3 p-0">
-          {detail.rates.map((rate) => (
-            <div key={rate.label} className="flex items-center justify-between rounded-2xl border border-border px-4 py-3">
-              <span>{rate.label}</span>
-              <span className="font-semibold text-accent">{rate.value}</span>
-            </div>
-          ))}
+          {ratesResp?.rates?.length ? (
+            (ratesResp.rates as RateRow[]).map((rate, idx) => (
+              <div key={`${rate.name}-${idx}`} className="flex items-center justify-between rounded-2xl border border-border px-4 py-3">
+                <span>
+                  {rate.name} (★{rate.rarity})
+                </span>
+                <span className="font-semibold text-accent">{rate.rate}</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-text-muted">提供割合が未登録です</p>
+          )}
         </CardContent>
       </Card>
 
