@@ -29,7 +29,7 @@ function SubmitButton({ children }: { children: ReactNode }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button className="w-full" disabled={pending}>
+    <Button type="submit" className="w-full" disabled={pending}>
       {pending ? "認証中..." : children}
     </Button>
   );
