@@ -112,6 +112,20 @@ export function GachaDrawPanel({ gachaId }: Props) {
                   <CardDescription className="text-xs uppercase tracking-[0.2em] text-text-muted">
                     演出: {item.animationName ?? item.animation}
                   </CardDescription>
+                  {item.animationType === "video" && item.animationAssetUrl ? (
+                    <div className="mt-2 overflow-hidden rounded-2xl border border-border/70">
+                      <video
+                        src={item.animationAssetUrl}
+                        className="h-32 w-full object-cover"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        controls
+                        preload="metadata"
+                      />
+                    </div>
+                  ) : null}
                 </CardHeader>
               </Card>
             ))}
