@@ -3,6 +3,11 @@ import { getServerEnv } from "@/lib/env";
 
 let client: Resend | null = null;
 
+export function hasResendConfig(): boolean {
+  const { RESEND_API_KEY, RESEND_FROM_EMAIL } = getServerEnv();
+  return Boolean(RESEND_API_KEY && RESEND_FROM_EMAIL);
+}
+
 export function getResendClient(): Resend {
   if (!client) {
     const { RESEND_API_KEY } = getServerEnv();

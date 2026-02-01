@@ -6,6 +6,7 @@ import { getSupabaseActionClient } from "@/lib/supabase/server";
 import { getSupabaseServiceClient } from "@/lib/supabase/service";
 import { publicEnv } from "@/lib/env";
 import { sendPasswordResetEmail, sendSignupVerificationEmail } from "@/lib/email/auth-emails";
+import { hasResendConfig } from "@/lib/email/resend";
 
 export type AuthActionState = {
   status: "idle" | "error";
@@ -72,25 +73,47 @@ export async function signUpAction(
     return { status: "error", message: firstError };
   }
 
-  const service = getSupabaseServiceClient();
   const redirectTo = `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
-  const { data, error } = await service.auth.admin.generateLink({
-    type: "signup",
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: { redirectTo },
-  });
+  if (!hasResendConfig()) {
+    const supabase = getSupabaseActionClient();
+    const { error } = await supabase.auth.signUp({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
 
-  if (error) {
-    return { status: "error", message: error.message };
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+
+    redirect("/login?signup=1");
   }
 
-  const link = data?.properties?.action_link;
-  if (!link) {
-    return { status: "error", message: "確認メールを作成できませんでした" };
-  }
+  try {
+    const service = getSupabaseServiceClient();
+    const { data, error } = await service.auth.admin.generateLink({
+      type: "signup",
+      email: parsed.data.email,
+      password: parsed.data.password,
+      options: { redirectTo },
+    });
 
-  await sendSignupVerificationEmail(parsed.data.email, link);
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+
+    const link = data?.properties?.action_link;
+    if (!link) {
+      return { status: "error", message: "確認メールを作成できませんでした" };
+    }
+
+    await sendSignupVerificationEmail(parsed.data.email, link);
+  } catch (error) {
+    console.error("signUpAction", error);
+    return { status: "error", message: "メール送信に失敗しました。しばらくしてからお試しください" };
+  }
 
   redirect("/login?signup=1");
 }
@@ -111,24 +134,41 @@ export async function requestPasswordResetAction(
     return { status: "error", message: "メールアドレスを確認してください" };
   }
 
-  const service = getSupabaseServiceClient();
   const redirectTo = `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
-  const { data, error } = await service.auth.admin.generateLink({
-    type: "recovery",
-    email: parsed.data.email,
-    options: { redirectTo },
-  });
+  if (!hasResendConfig()) {
+    const supabase = getSupabaseActionClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo });
 
-  if (error) {
-    return { status: "error", message: error.message };
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+
+    redirect("/login?reset=1");
   }
 
-  const link = data?.properties?.action_link;
-  if (!link) {
-    return { status: "error", message: "再設定リンクを生成できませんでした" };
+  try {
+    const service = getSupabaseServiceClient();
+    const { data, error } = await service.auth.admin.generateLink({
+      type: "recovery",
+      email: parsed.data.email,
+      options: { redirectTo },
+    });
+
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+
+    const link = data?.properties?.action_link;
+    if (!link) {
+      return { status: "error", message: "再設定リンクを生成できませんでした" };
+    }
+
+    await sendPasswordResetEmail(parsed.data.email, link);
+  } catch (error) {
+    console.error("requestPasswordResetAction", error);
+    return { status: "error", message: "メール送信に失敗しました。しばらくしてからお試しください" };
   }
 
-  await sendPasswordResetEmail(parsed.data.email, link);
   redirect("/login?reset=1");
 }
 
