@@ -15,7 +15,7 @@ export function SplashGateway() {
   const [phase, setPhase] = useState<Phase>("splash");
   const logos = {
     crest: "/assets/uma-royale-logo-transparent.png",
-    full: "/assets/uma-royale-logo.png",
+    full: "/assets/uma-royale-logo-transparent.png",
   };
 
   useEffect(() => {
