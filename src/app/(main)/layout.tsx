@@ -1,22 +1,15 @@
 import type { ReactNode } from "react";
-import {
-  Home,
-  BookMarked,
-  Sparkles,
-  Users2,
-  Menu as MenuIcon,
-} from "lucide-react";
 import { redirect } from "next/navigation";
 import { TabBar, type TabBarItem } from "@/components/layout/tab-bar";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { Toaster } from "sonner";
 
 const tabs: TabBarItem[] = [
-  { label: "ホーム", href: "/home", icon: Home },
-  { label: "図鑑", href: "/collection", icon: BookMarked },
-  { label: "ガチャ", href: "/gacha", icon: Sparkles, primary: true },
-  { label: "ソーシャル", href: "/social", icon: Users2 },
-  { label: "メニュー", href: "/menu", icon: MenuIcon },
+  { label: "ホーム", href: "/home", icon: "home" },
+  { label: "図鑑", href: "/collection", icon: "collection" },
+  { label: "ガチャ", href: "/gacha", icon: "gacha", primary: true },
+  { label: "ソーシャル", href: "/social", icon: "social" },
+  { label: "メニュー", href: "/menu", icon: "menu" },
 ];
 
 type MainLayoutProps = {

@@ -27,6 +27,24 @@ export function getSupabaseServerClient(): SupabaseClient<Database> {
       const store = await cookiesPromise;
       return store.getAll().map(({ name, value }) => ({ name, value }));
     },
+    setAll: async (cookieList) => {
+      const store = await cookiesPromise;
+      const mutableStore = store as unknown as {
+        set: (cookie: { name: string; value: string; options?: CookieOptions }) => void;
+      };
+
+      if (typeof mutableStore.set !== "function") {
+        return;
+      }
+
+      cookieList.forEach((cookie) => {
+        try {
+          mutableStore.set({ name: cookie.name, value: cookie.value, ...cookie.options });
+        } catch (error) {
+          console.error("Failed to set Supabase cookie in server client", error);
+        }
+      });
+    },
   });
 }
 

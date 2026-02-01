@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import { Home, BookMarked, Sparkles, Users2, Menu as MenuIcon } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+
+const iconMap = {
+  home: Home,
+  collection: BookMarked,
+  gacha: Sparkles,
+  social: Users2,
+  menu: MenuIcon,
+} as const;
+
+export type TabBarIconKey = keyof typeof iconMap;
 
 export type TabBarItem = {
   label: string;
   href: string;
-  icon: LucideIcon;
+  icon: TabBarIconKey;
   primary?: boolean;
 };
 
@@ -24,7 +34,10 @@ export function TabBar({ items }: TabBarProps) {
       <div className="flex w-[min(420px,calc(100%-2rem))] items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-2 text-text shadow-[0_20px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
         {items.map((item) => {
           const isActive = matchPath(pathname, item.href);
-          const Icon = item.icon;
+          const Icon = iconMap[item.icon];
+          if (!Icon) {
+            return null;
+          }
           return (
             <Link
               key={item.href}
