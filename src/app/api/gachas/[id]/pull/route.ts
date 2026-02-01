@@ -65,6 +65,7 @@ function fallbackResult(id: string, repeat: number) {
       rarity: selection.rarity,
       animation: resolveAnimation(selection.rarity, []).key,
       horseId: selection.id,
+      cardImageUrl: selection.card_image_url ?? null,
     };
   });
 
