@@ -8,7 +8,17 @@ import { Tabs } from "@/components/ui/tabs";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { getSupabaseServiceClient } from "@/lib/supabase/service";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const DEFAULT_ADMIN_EMAILS = [
+  "goldbenchan@gmail.com",
+  "kusano1@gmail.com",
+];
+
+const ENV_ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? process.env.ADMIN_EMAIL ?? "")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter((email) => email.length > 0);
+
+const ADMIN_EMAILS = ENV_ADMIN_EMAILS.length > 0 ? ENV_ADMIN_EMAILS : DEFAULT_ADMIN_EMAILS;
 
 async function requireAdminSession() {
   const supabase = getSupabaseServerClient();
@@ -16,7 +26,10 @@ async function requireAdminSession() {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session || (ADMIN_EMAIL && session.user.email !== ADMIN_EMAIL)) {
+  const userEmail = session?.user?.email?.toLowerCase() ?? null;
+  const isAllowed = ADMIN_EMAILS.length === 0 || (userEmail ? ADMIN_EMAILS.includes(userEmail) : false);
+
+  if (!session || !isAllowed) {
     redirect("/home");
   }
 
