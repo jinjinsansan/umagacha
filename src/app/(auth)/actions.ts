@@ -3,7 +3,9 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSupabaseActionClient } from "@/lib/supabase/server";
+import { getSupabaseServiceClient } from "@/lib/supabase/service";
 import { publicEnv } from "@/lib/env";
+import { sendPasswordResetEmail, sendSignupVerificationEmail } from "@/lib/email/auth-emails";
 
 export type AuthActionState = {
   status: "idle" | "error";
@@ -70,20 +72,64 @@ export async function signUpAction(
     return { status: "error", message: firstError };
   }
 
-  const supabase = getSupabaseActionClient();
-  const { error } = await supabase.auth.signUp({
+  const service = getSupabaseServiceClient();
+  const redirectTo = `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
+  const { data, error } = await service.auth.admin.generateLink({
+    type: "signup",
     email: parsed.data.email,
     password: parsed.data.password,
-    options: {
-      emailRedirectTo: `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`,
-    },
+    options: { redirectTo },
   });
 
   if (error) {
     return { status: "error", message: error.message };
   }
 
-  redirect("/home");
+  const link = data?.properties?.action_link;
+  if (!link) {
+    return { status: "error", message: "確認メールを作成できませんでした" };
+  }
+
+  await sendSignupVerificationEmail(parsed.data.email, link);
+
+  redirect("/login?signup=1");
+}
+
+const passwordResetSchema = z.object({
+  email: z.string().email(),
+});
+
+export async function requestPasswordResetAction(
+  _: AuthActionState,
+  formData: FormData
+): Promise<AuthActionState> {
+  const parsed = passwordResetSchema.safeParse({
+    email: formData.get("email"),
+  });
+
+  if (!parsed.success) {
+    return { status: "error", message: "メールアドレスを確認してください" };
+  }
+
+  const service = getSupabaseServiceClient();
+  const redirectTo = `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
+  const { data, error } = await service.auth.admin.generateLink({
+    type: "recovery",
+    email: parsed.data.email,
+    options: { redirectTo },
+  });
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  const link = data?.properties?.action_link;
+  if (!link) {
+    return { status: "error", message: "再設定リンクを生成できませんでした" };
+  }
+
+  await sendPasswordResetEmail(parsed.data.email, link);
+  redirect("/login?reset=1");
 }
 
 export async function signOutAction() {
