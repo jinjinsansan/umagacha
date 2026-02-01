@@ -34,13 +34,22 @@ function buildText(payload: AuthEmailPayload): string {
 
 async function sendAuthEmail(payload: AuthEmailPayload) {
   const resend = getResendClient();
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: getResendFromAddress(),
     to: payload.to,
     subject: payload.subject,
     html: buildHtml(payload),
     text: buildText(payload),
   });
+
+  if (error) {
+    console.error("Resend email error", error);
+    throw new Error("メール送信に失敗しました。しばらくしてからお試しください。");
+  }
+
+  if (data?.id) {
+    console.info(`[email] sent ${payload.subject} to ${payload.to} (id=${data.id})`);
+  }
 }
 
 export async function sendSignupVerificationEmail(to: string, link: string) {
@@ -62,5 +71,19 @@ export async function sendPasswordResetEmail(to: string, link: string) {
     body: "以下のボタンからパスワードの再設定を行ってください。心当たりがない場合はこのメールを破棄してください。",
     buttonLabel: "パスワードを再設定",
     subject: "【UMA ROYALE】パスワード再設定のご案内",
+  });
+}
+
+export async function sendEmailChangeVerificationEmail(to: string, link: string, kind: "current" | "new") {
+  const isCurrent = kind === "current";
+  await sendAuthEmail({
+    to,
+    link,
+    headline: isCurrent ? "メールアドレス変更の確認" : "新しいメールアドレスを確認してください",
+    body: isCurrent
+      ? "現在ご利用中のメールアドレスで変更リクエストが行われました。以下のボタンから変更を承認してください。"
+      : "UMA ROYALEアカウントの新しいメールアドレスとして登録するには、以下のボタンから確認を行ってください。",
+    buttonLabel: isCurrent ? "変更を承認する" : "新しいメールを確認",
+    subject: isCurrent ? "【UMA ROYALE】メールアドレス変更の確認" : "【UMA ROYALE】新しいメールアドレスの確認",
   });
 }
