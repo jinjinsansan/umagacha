@@ -13,10 +13,10 @@ type DbGacha = Database["public"]["Tables"]["gachas"]["Row"] & {
 
 type DbAnimation = Database["public"]["Tables"]["gacha_animations"]["Row"];
 
-const FALLBACK_HORSES = [
+const FALLBACK_HORSES: { id: string; name: string; rarity: number; card_image_url?: string }[] = [
   { id: "fallback-1", name: "ディープインパクト", rarity: 12 },
   { id: "fallback-2", name: "ナリタブライアン", rarity: 11 },
-  { id: "fallback-3", name: "ダンスインザダーク", rarity: 9 },
+  { id: "fallback-3", name: "ダンスインザダーク", rarity: 9, card_image_url: "/assets/dance-in-the-dark.png" },
   { id: "fallback-4", name: "エルコンドルパサー", rarity: 8 },
   { id: "fallback-5", name: "ナイスネイチャ", rarity: 6 },
   { id: "fallback-6", name: "ツインターボ", rarity: 5 },
@@ -91,7 +91,7 @@ export async function POST(
 
   const { data: gachaRows } = await supabase
     .from("gachas")
-    .select("*, ticket_types(id, name, code, color), gacha_rates(rate, horses(id, name, rarity))")
+    .select("*, ticket_types(id, name, code, color), gacha_rates(rate, horses(id, name, rarity, card_image_url))")
     .eq("ticket_types.code", id)
     .eq("is_active", true)
     .limit(1)

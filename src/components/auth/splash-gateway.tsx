@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,6 +13,10 @@ type Phase = "splash" | "title";
 export function SplashGateway() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("splash");
+  const logos = {
+    crest: "/assets/uma-royale-logo-transparent.png",
+    full: "/assets/uma-royale-logo.png",
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setPhase("title"), 2200);
@@ -47,14 +52,19 @@ export function SplashGateway() {
               className="flex flex-col items-center gap-6"
             >
               <motion.div
-                className="h-20 w-20 rounded-full border border-accent/50 text-accent"
-                initial={{ rotate: -10, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
+                className="relative h-28 w-28 overflow-hidden rounded-full border border-accent/40 bg-white/5 shadow-[0_0_60px_rgba(140,95,255,0.45)]"
+                initial={{ rotate: -5, opacity: 0, scale: 0.8 }}
+                animate={{ rotate: 0, opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <div className="flex h-full items-center justify-center font-serif text-xl tracking-[0.4em]">
-                  UR
-                </div>
+                <Image
+                  src={logos.crest}
+                  alt="UMA Royale crest"
+                  fill
+                  priority
+                  sizes="120px"
+                  className="object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.45)]"
+                />
               </motion.div>
               <motion.p
                 className="text-xs uppercase tracking-[0.6em] text-text-muted"
@@ -74,6 +84,16 @@ export function SplashGateway() {
               transition={{ duration: 0.5 }}
               className="flex flex-col items-center gap-8 text-center"
             >
+              <div className="flex justify-center">
+                <Image
+                  src={logos.full}
+                  alt="UMA Royale logo"
+                  width={320}
+                  height={200}
+                  priority
+                  className="h-auto w-72 max-w-full object-contain drop-shadow-[0_10px_60px_rgba(0,0,0,0.65)]"
+                />
+              </div>
               <div className="space-y-6">
                 <p className="text-xs uppercase tracking-[0.6em] text-accent">Tap to Start</p>
                 <div className="font-serif text-5xl leading-tight">
