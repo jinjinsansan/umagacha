@@ -7,7 +7,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: rates, error } = await supabase
     .from("gacha_rates")
-    .select("rate, horses(name, rarity)")
+    .select("rate, horses(name, rarity), gachas!inner(ticket_types!inner(code), is_active)")
     .eq("gachas.ticket_types.code", id)
     .eq("gachas.is_active", true)
     .returns<{ rate: number; horses: { name: string; rarity: number } | null }[]>();

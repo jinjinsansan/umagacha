@@ -67,14 +67,29 @@ export default async function GachaDetailPage({ params }: Params) {
         </CardHeader>
         <CardContent className="mt-4 space-y-3 p-0">
           {ratesResp?.rates?.length ? (
-            (ratesResp.rates as RateRow[]).map((rate, idx) => (
-              <div key={`${rate.name}-${idx}`} className="flex items-center justify-between rounded-2xl border border-border px-4 py-3">
-                <span>
-                  {rate.name} (★{rate.rarity})
-                </span>
-                <span className="font-semibold text-accent">{rate.rate}</span>
-              </div>
-            ))
+            (() => {
+              const items = (ratesResp.rates as RateRow[]).sort((a, b) => b.rarity - a.rarity || b.rate - a.rate);
+              const total = items.reduce((sum, r) => sum + Number(r.rate || 0), 0);
+              return (
+                <>
+                  <div className="flex items-center justify-between rounded-2xl border border-border px-4 py-3 text-xs text-text-muted">
+                    <span>合計</span>
+                    <span className={total === 100 ? "text-accent" : "text-amber-400"}>{total}</span>
+                  </div>
+                  {items.map((rate, idx) => (
+                    <div
+                      key={`${rate.name}-${idx}`}
+                      className="flex items-center justify-between rounded-2xl border border-border px-4 py-3"
+                    >
+                      <span>
+                        {rate.name} (★{rate.rarity})
+                      </span>
+                      <span className="font-semibold text-accent">{rate.rate}</span>
+                    </div>
+                  ))}
+                </>
+              );
+            })()
           ) : (
             <p className="text-sm text-text-muted">提供割合が未登録です</p>
           )}
