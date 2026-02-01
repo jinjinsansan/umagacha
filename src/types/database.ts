@@ -301,6 +301,113 @@ export type Database = {
           }
         ];
       };
+      friendships: {
+        Row: {
+          id: string;
+          user_id: string;
+          friend_user_id: string;
+          status: string;
+          requested_by: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          friend_user_id: string;
+          status?: string;
+          requested_by: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          friend_user_id?: string;
+          status?: string;
+          requested_by?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "friendships_friend_user_id_fkey";
+            columns: ["friend_user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "friendships_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gifts: {
+        Row: {
+          id: string;
+          from_user_id: string;
+          to_user_id: string;
+          type: string;
+          ticket_type_id: string | null;
+          horse_id: string | null;
+          quantity: number;
+          status: string;
+          created_at: string | null;
+          responded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          from_user_id: string;
+          to_user_id: string;
+          type: string;
+          ticket_type_id?: string | null;
+          horse_id?: string | null;
+          quantity?: number;
+          status?: string;
+          created_at?: string | null;
+          responded_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          from_user_id?: string;
+          to_user_id?: string;
+          type?: string;
+          ticket_type_id?: string | null;
+          horse_id?: string | null;
+          quantity?: number;
+          status?: string;
+          created_at?: string | null;
+          responded_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "gifts_from_user_id_fkey";
+            columns: ["from_user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gifts_to_user_id_fkey";
+            columns: ["to_user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gifts_ticket_type_id_fkey";
+            columns: ["ticket_type_id"];
+            referencedRelation: "ticket_types";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "gifts_horse_id_fkey";
+            columns: ["horse_id"];
+            referencedRelation: "horses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ticket_types: {
         Row: {
           id: string;
