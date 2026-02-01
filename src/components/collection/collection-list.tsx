@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type CollectionItem = {
   horse_id: string;
@@ -86,7 +87,16 @@ export function CollectionList() {
   }
 
   if (!data) {
-    return <p className="text-sm text-text-muted">読み込み中...</p>;
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-20 w-full" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

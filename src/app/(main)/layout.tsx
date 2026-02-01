@@ -9,6 +9,7 @@ import {
 import { redirect } from "next/navigation";
 import { TabBar, type TabBarItem } from "@/components/layout/tab-bar";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { Toaster } from "sonner";
 
 const tabs: TabBarItem[] = [
   { label: "ホーム", href: "/home", icon: Home },
@@ -41,6 +42,7 @@ export default async function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="relative min-h-screen bg-background text-text">
+      <Toaster position="top-center" richColors />
       <div className="pointer-events-none absolute inset-0 opacity-30">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#4a1942_0%,transparent_45%)]" />
       </div>

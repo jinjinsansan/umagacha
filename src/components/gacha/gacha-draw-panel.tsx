@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useTransition } from "react";
 import { Loader2, Ticket } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
@@ -52,14 +53,17 @@ export function GachaDrawPanel({ gachaId }: Props) {
         if (!response.ok || data.error) {
           setMessage(data.error ?? "抽選に失敗しました");
           setResults([]);
+          toast.error(data.error ?? "抽選に失敗しました");
         } else {
           setResults(data.results ?? []);
           setMessage(`消費: ${repeat} / 残高: ${data.remaining ?? "-"}`);
           if (data.warning) setWarning(data.warning);
+          toast.success(`ガチャを${repeat}回実行しました`);
         }
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "エラーが発生しました");
         setResults([]);
+        toast.error(error instanceof Error ? error.message : "エラーが発生しました");
       } finally {
         setModalOpen(true);
       }

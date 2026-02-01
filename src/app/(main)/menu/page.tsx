@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { Header } from "@/components/layout/header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export default function MenuPage() {
     sessionStorage.clear();
     setNotify(false);
     setBgm(true);
+    toast.success("キャッシュを削除しました");
   };
 
   return (

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Users2, Gift } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type FriendList = {
   friends: { id: string; peer: string; since: string | null }[];
@@ -27,34 +29,39 @@ type GiftItem = {
 export function SocialPanel() {
   const [list, setList] = useState<FriendList | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [toUser, setToUser] = useState("");
   const [giftTo, setGiftTo] = useState("");
   const [giftTicket, setGiftTicket] = useState("");
   const [giftQty, setGiftQty] = useState(1);
   const [incomingGifts, setIncomingGifts] = useState<GiftItem[]>([]);
   const [outgoingGifts, setOutgoingGifts] = useState<GiftItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ id: string; email: string | null }[]>([]);
 
   const load = () => {
-    fetch("/api/social/friends")
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error ?? "取得に失敗しました");
-        return data as FriendList;
-      })
-      .then((data) => setList(data))
-      .catch((e: Error) => setErr(e.message));
-
-    fetch("/api/social/gifts")
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error ?? "取得に失敗しました");
-        return data as { incoming: GiftItem[]; outgoing: GiftItem[] };
-      })
-      .then((data) => {
-        setIncomingGifts(data.incoming ?? []);
-        setOutgoingGifts(data.outgoing ?? []);
-      })
-      .catch((e: Error) => setErr(e.message));
+    setLoading(true);
+    Promise.all([
+      fetch("/api/social/friends")
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error ?? "取得に失敗しました");
+          return data as FriendList;
+        })
+        .then((data) => setList(data))
+        .catch((e: Error) => setErr(e.message)),
+      fetch("/api/social/gifts")
+        .then(async (res) => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data?.error ?? "取得に失敗しました");
+          return data as { incoming: GiftItem[]; outgoing: GiftItem[] };
+        })
+        .then((data) => {
+          setIncomingGifts(data.incoming ?? []);
+          setOutgoingGifts(data.outgoing ?? []);
+        })
+        .catch((e: Error) => setErr(e.message)),
+    ]).finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -72,8 +79,10 @@ export function SocialPanel() {
       if (!res.ok) throw new Error(data?.error ?? "申請に失敗しました");
       setToUser("");
       load();
+      toast.success("フレンド申請を送信しました");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "エラー");
+      toast.error(e instanceof Error ? e.message : "エラー");
     }
   };
 
@@ -87,8 +96,10 @@ export function SocialPanel() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "処理に失敗しました");
       load();
+      toast.success(action === "accept" ? "承認しました" : "拒否しました");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "エラー");
+      toast.error(e instanceof Error ? e.message : "エラー");
     }
   };
 
@@ -105,10 +116,38 @@ export function SocialPanel() {
       setGiftTicket("");
       setGiftQty(1);
       load();
+      toast.success("ギフトを送信しました");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "エラー");
+      toast.error(e instanceof Error ? e.message : "エラー");
     }
   };
+
+  const searchUsers = async (q: string) => {
+    if (!q.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/social/search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (res.ok) {
+        setSearchResults(data.users ?? []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -142,9 +181,38 @@ export function SocialPanel() {
           <CardTitle className="text-base">申請</CardTitle>
         </CardHeader>
         <CardContent className="mt-4 space-y-3 p-0 text-sm">
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="メールアドレスで検索"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  searchUsers(e.target.value);
+                }}
+              />
+            </div>
+            {searchResults.length > 0 && (
+              <div className="space-y-1 rounded-2xl border border-border p-2">
+                {searchResults.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      setToUser(u.id);
+                      setSearchQuery("");
+                      setSearchResults([]);
+                    }}
+                    className="w-full text-left rounded-lg px-2 py-1 text-xs text-text-muted hover:bg-border/20"
+                  >
+                    {u.email}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex gap-2">
             <Input
-              placeholder="ユーザーID"
+              placeholder="ユーザーID (または検索から選択)"
               value={toUser}
               onChange={(e) => setToUser(e.target.value)}
             />

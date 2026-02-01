@@ -89,6 +89,33 @@ async function upsertGacha(formData: FormData) {
   revalidatePath("/admin");
 }
 
+async function updateGacha(formData: FormData) {
+  "use server";
+  await requireAdminSession();
+  const svc = getSupabaseServiceClient();
+
+  const id = String(formData.get("edit_gacha_id") ?? "");
+  const name = String(formData.get("edit_gacha_name") ?? "").trim();
+  const is_active = formData.get("edit_is_active") === "on";
+
+  if (!id || !name) return;
+
+  await svc.from("gachas").update({ name, is_active }).eq("id", id);
+  revalidatePath("/admin");
+}
+
+async function deleteGacha(formData: FormData) {
+  "use server";
+  await requireAdminSession();
+  const svc = getSupabaseServiceClient();
+
+  const id = String(formData.get("delete_gacha_id") ?? "");
+  if (!id) return;
+
+  await svc.from("gachas").delete().eq("id", id);
+  revalidatePath("/admin");
+}
+
 async function importRatesCsv(formData: FormData) {
   "use server";
   await requireAdminSession();
@@ -106,6 +133,18 @@ async function importRatesCsv(formData: FormData) {
 
   if (rows.length === 0) return;
   await svc.from("gacha_rates").upsert(rows, { onConflict: "gacha_id,horse_id" });
+  revalidatePath("/admin");
+}
+
+async function deleteRate(formData: FormData) {
+  "use server";
+  await requireAdminSession();
+  const svc = getSupabaseServiceClient();
+
+  const id = String(formData.get("rate_id") ?? "");
+  if (!id) return;
+
+  await svc.from("gacha_rates").delete().eq("id", id);
   revalidatePath("/admin");
 }
 
@@ -164,10 +203,13 @@ export default async function AdminPage() {
     ticket_types?: { code?: string | null; name?: string | null } | null;
     min_rarity?: number | null;
     max_rarity?: number | null;
+    is_active?: boolean | null;
   };
 
   type RateRow = {
+    id: string;
     gacha_id: string;
+    horse_id: string;
     rate: number;
     horses: { name: string; rarity: number } | null;
     gachas: { name: string } | null;
@@ -188,7 +230,7 @@ export default async function AdminPage() {
       svc.from("ticket_types").select("id, name, code").order("code"),
       svc
         .from("gacha_rates")
-        .select("gacha_id, rate, horses(name, rarity), gachas(name)")
+        .select("id, gacha_id, horse_id, rate, horses(name, rarity), gachas(name)")
         .order("rate", { ascending: false })
         .returns<RateRow[]>(),
       svc.from("app_settings").select("value").eq("key", "maintenance").maybeSingle(),
@@ -277,6 +319,49 @@ export default async function AdminPage() {
 
         <Card>
           <CardHeader className="p-0">
+            <CardTitle>ガチャ編集/削除</CardTitle>
+            <CardDescription>既存のガチャを編集または削除できます。</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 pt-4 space-y-3">
+            {gachas && gachas.length > 0 ? (
+              gachas.map((gacha) => (
+                <div key={gacha.id} className="rounded-2xl border border-border p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">{gacha.name}</p>
+                      <p className="text-xs text-text-muted">
+                        {gacha.ticket_types?.code} | ★{gacha.min_rarity}〜{gacha.max_rarity} | {gacha.is_active ? "有効" : "無効"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <form action={updateGacha} className="flex-1">
+                      <input type="hidden" name="edit_gacha_id" value={gacha.id} />
+                      <div className="grid gap-2">
+                        <Input name="edit_gacha_name" defaultValue={gacha.name} placeholder="ガチャ名" required />
+                        <label className="flex items-center gap-2 text-sm text-text-muted">
+                          <input type="checkbox" name="edit_is_active" defaultChecked={gacha.is_active ?? false} /> 有効
+                        </label>
+                        <Button type="submit" size="sm">更新</Button>
+                      </div>
+                    </form>
+                    <form action={deleteGacha}>
+                      <input type="hidden" name="delete_gacha_id" value={gacha.id} />
+                      <Button type="submit" size="sm" variant="ghost">
+                        削除
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-text-muted">ガチャが登録されていません</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="p-0">
             <CardTitle>提供割合（ガチャ×馬）</CardTitle>
             <CardDescription>ガチャに馬を紐付け、rate は重み（合計は任意）。</CardDescription>
           </CardHeader>
@@ -322,6 +407,31 @@ export default async function AdminPage() {
                   CSVを反映
                 </Button>
               </form>
+            </div>
+            <div className="mt-4 space-y-2">
+              <p className="text-xs text-text-muted">登録済み提供割合</p>
+              {rates && rates.length > 0 ? (
+                <div className="space-y-2">
+                  {rates.map((rate) => (
+                    <div key={rate.id} className="flex items-center justify-between rounded-2xl border border-border px-3 py-2 text-sm">
+                      <div className="flex-1">
+                        <p className="font-semibold">
+                          {rate.gachas?.name} → {rate.horses?.name} (★{rate.horses?.rarity})
+                        </p>
+                        <p className="text-xs text-text-muted">重み: {rate.rate}</p>
+                      </div>
+                      <form action={deleteRate}>
+                        <input type="hidden" name="rate_id" value={rate.id} />
+                        <Button type="submit" size="sm" variant="ghost">
+                          削除
+                        </Button>
+                      </form>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-text-muted">提供割合が登録されていません</p>
+              )}
             </div>
           </CardContent>
         </Card>
