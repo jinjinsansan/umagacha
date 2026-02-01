@@ -12,6 +12,18 @@ type FriendList = {
   outgoing: { id: string; to: string; at: string | null }[];
 };
 
+type GiftItem = {
+  id: string;
+  type: string;
+  ticket_types?: { code?: string | null; name?: string | null } | null;
+  horses?: { name?: string | null; rarity?: number | null } | null;
+  quantity: number;
+  status: string;
+  created_at: string | null;
+  from_user_id: string;
+  to_user_id: string;
+};
+
 export function SocialPanel() {
   const [list, setList] = useState<FriendList | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -19,6 +31,8 @@ export function SocialPanel() {
   const [giftTo, setGiftTo] = useState("");
   const [giftTicket, setGiftTicket] = useState("");
   const [giftQty, setGiftQty] = useState(1);
+  const [incomingGifts, setIncomingGifts] = useState<GiftItem[]>([]);
+  const [outgoingGifts, setOutgoingGifts] = useState<GiftItem[]>([]);
 
   const load = () => {
     fetch("/api/social/friends")
@@ -28,6 +42,18 @@ export function SocialPanel() {
         return data as FriendList;
       })
       .then((data) => setList(data))
+      .catch((e: Error) => setErr(e.message));
+
+    fetch("/api/social/gifts")
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error ?? "取得に失敗しました");
+        return data as { incoming: GiftItem[]; outgoing: GiftItem[] };
+      })
+      .then((data) => {
+        setIncomingGifts(data.incoming ?? []);
+        setOutgoingGifts(data.outgoing ?? []);
+      })
       .catch((e: Error) => setErr(e.message));
   };
 
@@ -78,6 +104,7 @@ export function SocialPanel() {
       setGiftTo("");
       setGiftTicket("");
       setGiftQty(1);
+      load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "エラー");
     }
@@ -188,6 +215,63 @@ export function SocialPanel() {
             </Button>
           </div>
           <p className="text-[0.75rem] text-text-muted">※ 馬カードの贈答は後続UIで対応予定</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between p-0">
+          <CardTitle className="text-base">受信ギフト</CardTitle>
+        </CardHeader>
+        <CardContent className="mt-4 space-y-3 p-0 text-sm">
+          {incomingGifts.length === 0 ? (
+            <p className="text-text-muted text-xs">受信ギフトなし</p>
+          ) : (
+            incomingGifts.map((g) => (
+              <div key={g.id} className="rounded-2xl border border-border px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">{g.type === "ticket" ? g.ticket_types?.code : g.horses?.name}</span>
+                  <span className="text-xs text-text-muted">x{g.quantity}</span>
+                </div>
+                <p className="text-[0.75rem] text-text-muted">from: {g.from_user_id}</p>
+                <div className="mt-2 flex gap-2">
+                  {g.status === "sent" ? (
+                    <>
+                      <Button size="sm" onClick={() => respond(g.id, "accept")}>
+                        受け取る
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => respond(g.id, "decline")}>
+                        拒否
+                      </Button>
+                    </>
+                  ) : (
+                    <span className="text-xs text-text-muted">{g.status}</span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between p-0">
+          <CardTitle className="text-base">送信ギフト</CardTitle>
+        </CardHeader>
+        <CardContent className="mt-4 space-y-3 p-0 text-sm">
+          {outgoingGifts.length === 0 ? (
+            <p className="text-text-muted text-xs">送信ギフトなし</p>
+          ) : (
+            outgoingGifts.map((g) => (
+              <div key={g.id} className="rounded-2xl border border-border px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">{g.type === "ticket" ? g.ticket_types?.code : g.horses?.name}</span>
+                  <span className="text-xs text-text-muted">x{g.quantity}</span>
+                </div>
+                <p className="text-[0.75rem] text-text-muted">to: {g.to_user_id}</p>
+                <p className="text-[0.7rem] text-text-muted">status: {g.status}</p>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
     </div>
