@@ -74,7 +74,12 @@ export async function signUpAction(
   }
 
   const redirectTo = `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
-  if (!hasResendConfig()) {
+  const useResend = hasResendConfig();
+  if (!useResend) {
+    if (process.env.NODE_ENV === "production") {
+      return { status: "error", message: "メール送信設定が完了していません。管理者にお問い合わせください" };
+    }
+
     const supabase = getSupabaseActionClient();
     const { error } = await supabase.auth.signUp({
       email: parsed.data.email,
@@ -135,7 +140,12 @@ export async function requestPasswordResetAction(
   }
 
   const redirectTo = `${publicEnv.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/callback`;
-  if (!hasResendConfig()) {
+  const useResend = hasResendConfig();
+  if (!useResend) {
+    if (process.env.NODE_ENV === "production") {
+      return { status: "error", message: "メール送信設定が完了していません。管理者にお問い合わせください" };
+    }
+
     const supabase = getSupabaseActionClient();
     const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, { redirectTo });
 
