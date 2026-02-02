@@ -41,8 +41,7 @@ export function GachaDrawPanel({ gachaId }: Props) {
   const [displayResults, setDisplayResults] = useState<DrawResult[]>([]);
   const [cinematicResults, setCinematicResults] = useState<DrawResult[] | null>(null);
   const [cinematicOpen, setCinematicOpen] = useState(false);
-  const [cinematicCycle, setCinematicCycle] = useState(0);
-
+  
   const highlight = useMemo(() => {
     if (!displayResults.length) return null;
     return displayResults.reduce((top, current) => (current.rarity > top.rarity ? current : top), displayResults[0]);
@@ -70,7 +69,6 @@ export function GachaDrawPanel({ gachaId }: Props) {
           toast.success(`ガチャを${repeat}回実行しました`);
           if (data.results?.length) {
             setCinematicResults(data.results);
-            setCinematicCycle((value) => value + 1);
             setCinematicOpen(true);
           } else {
             setDisplayResults([]);
@@ -106,7 +104,6 @@ export function GachaDrawPanel({ gachaId }: Props) {
   return (
     <>
       <GachaCinematicOverlay
-        key={cinematicCycle}
         open={cinematicOpen}
         results={cinematicResults ?? []}
         onFinish={handleCinematicFinish}
