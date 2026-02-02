@@ -110,7 +110,10 @@ export function GachaCinematicOverlay({ open, results, onFinish, videoSrc, audio
     stopAudio();
     const video = videoRef.current;
     if (video) {
-      video.currentTime = Math.max(video.duration - 0.3, 0);
+      const duration = Number.isFinite(video.duration) ? video.duration : null;
+      if (duration && duration > 0) {
+        video.currentTime = Math.max(duration - 0.3, 0);
+      }
       video.pause();
     }
     startFade();
