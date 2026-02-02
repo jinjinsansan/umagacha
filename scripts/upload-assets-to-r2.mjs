@@ -1,9 +1,15 @@
 #!/usr/bin/env node
+import { config as loadEnv } from "dotenv";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createReadStream } from "fs";
 import { readdir, stat } from "fs/promises";
 import path from "path";
 import mime from "mime-types";
+
+const envFiles = [".env.local", ".env"];
+for (const file of envFiles) {
+  loadEnv({ path: file, override: false });
+}
 
 const requiredEnv = [
   "R2_ACCOUNT_ID",
