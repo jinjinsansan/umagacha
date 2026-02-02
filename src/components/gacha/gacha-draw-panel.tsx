@@ -10,11 +10,11 @@ import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overla
 
 const CINEMATIC_SOURCES = [
   {
-    src: "/animations/gacha/uma-cinematic-2-portrait.mp4",
+    src: "/animations/gacha/uma-cinematic-2-portrait-v2.mp4",
     type: "video/mp4",
   },
 ];
-const CINEMATIC_POSTER = "/animations/gacha/uma-cinematic-2-poster.jpg";
+const CINEMATIC_POSTER = "/animations/gacha/uma-cinematic-2-poster-v2.jpg";
 const CINEMATIC_AUDIO = "/animations/gacha/uma-cinematic-2.m4a";
 export type DrawResult = {
   horseId: string;
