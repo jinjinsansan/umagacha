@@ -9,10 +9,13 @@ import { motion } from "framer-motion";
 import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overlay";
 import { buildAssetUrl } from "@/lib/assets";
 
-const CINEMATIC_VIDEO = buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v3.mp4");
 const CINEMATIC_SOURCES = [
   {
-    src: CINEMATIC_VIDEO,
+    src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v3.webm"),
+    type: "video/webm",
+  },
+  {
+    src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v3.mp4"),
     type: "video/mp4",
   },
 ];
