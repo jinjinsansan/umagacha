@@ -30,7 +30,7 @@ export default async function GachaHubPage() {
 
       <section className="space-y-4">
         {featured.map((item) => {
-          const fallbackSlug = typeof item.id === "string" ? item.id.toLowerCase() : item.id;
+          const fallbackSlug = typeof item.id === "string" && item.id ? item.id.toLowerCase() : "free";
           const slug = canonicalizeGachaId(item.id) ?? fallbackSlug;
           return (
           <Card key={item.id} className="bg-gradient-to-br from-secondary/40 to-background">

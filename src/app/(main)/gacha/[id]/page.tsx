@@ -33,6 +33,9 @@ export default async function GachaDetailPage({ params }: Params) {
   type RateRow = { name: string; rarity: number; rate: number };
 
   const requestedSlug = params.id;
+  if (!requestedSlug || typeof requestedSlug !== "string") {
+    notFound();
+  }
   const apiSlug = canonicalizeGachaId(requestedSlug) ?? requestedSlug.toLowerCase();
   const ratesEndpointSlug = encodeURIComponent(apiSlug);
   const searchKey = buildGachaSearchKey(requestedSlug) ?? apiSlug;

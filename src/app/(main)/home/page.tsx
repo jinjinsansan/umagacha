@@ -59,7 +59,7 @@ export default async function HomePage() {
         </div>
         <div className="space-y-4">
           {gachaTiers.map((tier) => {
-            const fallbackSlug = typeof tier.id === "string" ? tier.id.toLowerCase() : tier.id;
+            const fallbackSlug = typeof tier.id === "string" && tier.id ? tier.id.toLowerCase() : "free";
             const slug = canonicalizeGachaId(tier.id) ?? fallbackSlug;
             return (
             <Card
