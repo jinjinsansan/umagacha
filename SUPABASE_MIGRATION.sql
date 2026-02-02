@@ -331,9 +331,10 @@ ORDER BY h.rarity DESC;
 -- 全ガチャの提供割合合計（各ガチャで約100%になるはず）
 SELECT 
   g.name as gacha_name,
+  g.sort_order,
   COUNT(*) as horse_count,
   SUM(gr.rate) as total_rate
 FROM gacha_rates gr
 INNER JOIN gachas g ON gr.gacha_id = g.id
-GROUP BY g.name
+GROUP BY g.name, g.sort_order
 ORDER BY g.sort_order;
