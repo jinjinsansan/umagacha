@@ -22,16 +22,52 @@ type CinematicOverlayProps = {
 };
 
 type Phase = "video" | "fade" | "result";
+type TimelineState = {
+  snow: boolean;
+  logo: boolean;
+  gold: boolean;
+};
 
 const FADE_DURATION = 800;
 const DEFAULT_VIDEO_SOURCES = [
-  { src: "/animations/gacha/uma-cinematic-1.mp4", type: "video/mp4" },
+  { src: "/animations/gacha/uma-cinematic-2-mobile.mp4", type: "video/mp4" },
 ];
-const DEFAULT_AUDIO = "/animations/gacha/uma-cinematic-1.m4a";
-const VIDEO_PREFETCH_LIST = [
-  "/animations/gacha/uma-cinematic-1.mp4",
-  "/animations/gacha/uma-cinematic-1-mobile.mp4",
-];
+const DEFAULT_AUDIO = "/animations/gacha/uma-cinematic-2.m4a";
+const LOGO_ASSET = "/assets/uma-royale-logo-transparent.png";
+
+type Particle = {
+  id: string;
+  left: number;
+  delay: number;
+  duration: number;
+  size: number;
+  drift: number;
+};
+
+const pseudoRandom = (seed: number) => {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
+const createParticles = (count: number, sizeBase: number, sizeRange: number, durationBase: number, durationRange: number, driftRange: number, idPrefix: string): Particle[] =>
+  Array.from({ length: count }, (_, index) => {
+    const left = pseudoRandom(index + 1) * 100;
+    const delay = pseudoRandom(index + 11) * 1.2;
+    const duration = durationBase + pseudoRandom(index + 21) * durationRange;
+    const size = sizeBase + pseudoRandom(index + 31) * sizeRange;
+    const drift = -driftRange / 2 + pseudoRandom(index + 41) * driftRange;
+    return {
+      id: `${idPrefix}-${index}`,
+      left,
+      delay,
+      duration,
+      size,
+      drift,
+    };
+  });
+
+const SNOW_PARTICLES = createParticles(32, 2, 2.5, 3.5, 3.5, 40, "snow");
+const GOLD_PARTICLES = createParticles(24, 3, 4, 2.5, 2.5, 30, "gold");
 
 export function GachaCinematicOverlay({
   open,
@@ -44,6 +80,7 @@ export function GachaCinematicOverlay({
 }: CinematicOverlayProps) {
   const [phase, setPhase] = useState<Phase>("video");
   const [fadeProgress, setFadeProgress] = useState(0);
+  const [timelineState, setTimelineState] = useState<TimelineState>({ snow: false, logo: false, gold: false });
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -66,8 +103,13 @@ export function GachaCinematicOverlay({
     audioRef.current = null;
   }, []);
 
+  const resetTimeline = useCallback(() => {
+    setTimelineState({ snow: false, logo: false, gold: false });
+  }, []);
+
   const startFade = useCallback(() => {
     if (phase !== "video") return;
+    resetTimeline();
     setPhase("fade");
     const start = Date.now();
     const tick = () => {
@@ -81,14 +123,15 @@ export function GachaCinematicOverlay({
       }
     };
     tick();
-  }, [phase, setFadeProgress]);
+  }, [phase, setFadeProgress, resetTimeline]);
 
   const handleFinish = useCallback(() => {
     clearTimers();
     stopAudio();
     videoRef.current?.pause();
+    resetTimeline();
     onFinish();
-  }, [clearTimers, stopAudio, onFinish]);
+  }, [clearTimers, stopAudio, onFinish, resetTimeline]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,7 +157,8 @@ export function GachaCinematicOverlay({
   }, [open, audioSrc, primedAudio]);
 
   useEffect(() => {
-    const links = VIDEO_PREFETCH_LIST.map((url) => {
+    const uniqueSources = Array.from(new Set(videoSources.map((source) => source.src)));
+    const links = uniqueSources.map((url) => {
       const link = document.createElement("link");
       link.rel = "prefetch";
       link.as = "video";
@@ -127,7 +171,7 @@ export function GachaCinematicOverlay({
     return () => {
       links.forEach((link) => link.parentNode?.removeChild(link));
     };
-  }, []);
+  }, [videoSources]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -135,7 +179,10 @@ export function GachaCinematicOverlay({
       clearTimers();
       stopAudio();
       video?.pause();
-      return;
+      const frameReset = requestAnimationFrame(() => {
+        resetTimeline();
+      });
+      return () => cancelAnimationFrame(frameReset);
     }
 
     const frame = requestAnimationFrame(() => {
@@ -149,7 +196,27 @@ export function GachaCinematicOverlay({
       stopAudio();
       video?.pause();
     };
-  }, [open, clearTimers, stopAudio]);
+  }, [open, clearTimers, stopAudio, resetTimeline]);
+
+  useEffect(() => {
+    if (!open) return;
+    let raf: number;
+    const trackTimeline = () => {
+      const current = videoRef.current?.currentTime ?? 0;
+      const next: TimelineState = {
+        snow: current >= 5 && current < 10,
+        logo: current >= 15 && current < 17,
+        gold: current >= 17 && current < 20,
+      };
+      setTimelineState((prev) =>
+        prev.snow === next.snow && prev.logo === next.logo && prev.gold === next.gold ? prev : next,
+      );
+      raf = requestAnimationFrame(trackTimeline);
+    };
+    raf = requestAnimationFrame(trackTimeline);
+    return () => cancelAnimationFrame(raf);
+  }, [open]);
+
 
   const handleSkip = () => {
     if (phase === "result") return;
@@ -180,7 +247,7 @@ export function GachaCinematicOverlay({
           <video
             key={videoSources.map((source) => source.src).join("|")}
             ref={videoRef}
-            className="pointer-events-none absolute inset-0 h-full w-full object-contain md:object-cover bg-black"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover bg-black"
             playsInline
             autoPlay
             muted
@@ -192,6 +259,14 @@ export function GachaCinematicOverlay({
               <source key={source.src} src={source.src} type={source.type} media={source.media} />
             ))}
           </video>
+
+          <div className="pointer-events-none absolute inset-0">
+            <AnimatePresence>
+              {timelineState.snow ? <SnowLayer key="snow-layer" /> : null}
+              {timelineState.logo ? <LogoPulse key="logo-layer" /> : null}
+              {timelineState.gold ? <GoldLayer key="gold-layer" /> : null}
+            </AnimatePresence>
+          </div>
 
           <motion.div
             className="pointer-events-none absolute inset-0 bg-black"
@@ -254,3 +329,100 @@ export function GachaCinematicOverlay({
     document.body
   );
 }
+
+const SnowLayer = () => (
+  <motion.div
+    className="pointer-events-none absolute inset-0 overflow-hidden"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.4 }}
+  >
+    {SNOW_PARTICLES.map((particle) => (
+      <motion.span
+        key={particle.id}
+        className="absolute rounded-full bg-white/80 shadow-[0_0_8px_rgba(255,255,255,0.5)]"
+        initial={{ y: "-10%", opacity: 0 }}
+        animate={{ y: "110%", opacity: [0, 0.9, 0.2], x: ["0%", `${particle.drift}%`] }}
+        transition={{
+          duration: particle.duration,
+          delay: particle.delay,
+          repeat: Infinity,
+          ease: "linear",
+        }}
+        style={{
+          left: `${particle.left}%`,
+          width: particle.size,
+          height: particle.size,
+        }}
+      />
+    ))}
+  </motion.div>
+);
+
+const GoldLayer = () => (
+  <motion.div
+    className="pointer-events-none absolute inset-0 overflow-hidden"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.5 }}
+  >
+    <div className="absolute inset-0 bg-gradient-to-b from-amber-400/15 via-transparent to-amber-200/15 mix-blend-screen" />
+    {GOLD_PARTICLES.map((particle) => (
+      <motion.span
+        key={particle.id}
+        className="absolute rounded-full bg-amber-300/80 blur-[1px] mix-blend-screen"
+        initial={{ scale: 0.4, opacity: 0 }}
+        animate={{ scale: [0.4, 1.2, 1.6], opacity: [0, 0.9, 0] }}
+        transition={{
+          duration: particle.duration,
+          delay: particle.delay,
+          repeat: Infinity,
+          ease: "easeOut",
+        }}
+        style={{
+          left: `${particle.left}%`,
+          bottom: "-10%",
+          width: particle.size * 6,
+          height: particle.size * 6,
+          boxShadow: "0 0 25px rgba(255,200,92,0.4)",
+        }}
+      />
+    ))}
+  </motion.div>
+);
+
+const LogoPulse = () => (
+  <motion.div
+    className="pointer-events-none absolute inset-0 flex items-center justify-center"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <motion.div
+      className="flex flex-col items-center gap-4 text-white"
+      initial={{ scale: 0.6, opacity: 0 }}
+      animate={{ scale: [0.6, 1.1, 1.35], opacity: [0, 1, 0] }}
+      transition={{ duration: 1.6, ease: "easeInOut" }}
+    >
+      <Image
+        src={LOGO_ASSET}
+        alt="UMA Royale Emblem"
+        width={360}
+        height={360}
+        className="w-40 sm:w-48 drop-shadow-[0_0_45px_rgba(255,255,255,0.45)]"
+        priority={false}
+      />
+      <motion.span
+        className="text-xs uppercase tracking-[0.8em] text-white/80"
+        initial={{ opacity: 0, letterSpacing: "0.4em" }}
+        animate={{ opacity: [0, 1, 0], letterSpacing: ["0.4em", "0.8em", "1.2em"] }}
+        transition={{ duration: 1.4, ease: "easeIn" }}
+      >
+        UMA ROYALE
+      </motion.span>
+    </motion.div>
+  </motion.div>
+);
