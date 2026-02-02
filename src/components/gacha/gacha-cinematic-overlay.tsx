@@ -11,17 +11,37 @@ type CinematicOverlayProps = {
   open: boolean;
   results: DrawResult[];
   onFinish: () => void;
-  videoSrc?: string;
+  videoSources?: {
+    src: string;
+    type?: string;
+    media?: string;
+  }[];
+  posterSrc?: string;
   audioSrc?: string;
+  primedAudio?: HTMLAudioElement;
 };
 
 type Phase = "video" | "fade" | "result";
 
 const FADE_DURATION = 800;
-const DEFAULT_VIDEO = "/animations/gacha/uma-cinematic-1.mp4";
+const DEFAULT_VIDEO_SOURCES = [
+  { src: "/animations/gacha/uma-cinematic-1.mp4", type: "video/mp4" },
+];
 const DEFAULT_AUDIO = "/animations/gacha/uma-cinematic-1.m4a";
+const VIDEO_PREFETCH_LIST = [
+  "/animations/gacha/uma-cinematic-1.mp4",
+  "/animations/gacha/uma-cinematic-1-mobile.mp4",
+];
 
-export function GachaCinematicOverlay({ open, results, onFinish, videoSrc, audioSrc }: CinematicOverlayProps) {
+export function GachaCinematicOverlay({
+  open,
+  results,
+  onFinish,
+  videoSources = DEFAULT_VIDEO_SOURCES,
+  posterSrc,
+  audioSrc,
+  primedAudio,
+}: CinematicOverlayProps) {
   const [phase, setPhase] = useState<Phase>("video");
   const [fadeProgress, setFadeProgress] = useState(0);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -71,6 +91,45 @@ export function GachaCinematicOverlay({ open, results, onFinish, videoSrc, audio
   }, [clearTimers, stopAudio, onFinish]);
 
   useEffect(() => {
+    if (!open) return;
+    const usingPrimed = Boolean(primedAudio);
+    const media = (() => {
+      if (primedAudio) return primedAudio;
+      const created = new Audio(audioSrc ?? DEFAULT_AUDIO);
+      created.loop = false;
+      created.volume = 0.85;
+      return created;
+    })();
+    media.currentTime = 0;
+    const playPromise = media.play();
+    if (playPromise) {
+      playPromise.catch(() => null);
+    }
+    audioRef.current = media;
+    return () => {
+      if (!usingPrimed) {
+        media.pause();
+      }
+    };
+  }, [open, audioSrc, primedAudio]);
+
+  useEffect(() => {
+    const links = VIDEO_PREFETCH_LIST.map((url) => {
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.as = "video";
+      link.href = url;
+      link.crossOrigin = "anonymous";
+      link.dataset.prefetchTarget = "gacha-cinematic";
+      document.head.appendChild(link);
+      return link;
+    });
+    return () => {
+      links.forEach((link) => link.parentNode?.removeChild(link));
+    };
+  }, []);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!open) {
       clearTimers();
@@ -92,18 +151,6 @@ export function GachaCinematicOverlay({ open, results, onFinish, videoSrc, audio
     };
   }, [open, clearTimers, stopAudio]);
 
-  useEffect(() => {
-    if (!open) return;
-    const media = new Audio(audioSrc ?? DEFAULT_AUDIO);
-    media.volume = 0.85;
-    media.loop = false;
-    media.play().catch(() => null);
-    audioRef.current = media;
-    return () => {
-      media.pause();
-    };
-  }, [open, audioSrc]);
-
   const handleSkip = () => {
     if (phase === "result") return;
     clearTimers();
@@ -121,8 +168,6 @@ export function GachaCinematicOverlay({ open, results, onFinish, videoSrc, audio
 
   if (typeof window === "undefined") return null;
 
-  const resolvedVideo = videoSrc ?? DEFAULT_VIDEO;
-
   return createPortal(
     <AnimatePresence>
       {open ? (
@@ -133,15 +178,20 @@ export function GachaCinematicOverlay({ open, results, onFinish, videoSrc, audio
           exit={{ opacity: 0 }}
         >
           <video
-            key={resolvedVideo}
+            key={videoSources.map((source) => source.src).join("|")}
             ref={videoRef}
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
-            src={resolvedVideo}
+            className="pointer-events-none absolute inset-0 h-full w-full object-contain md:object-cover bg-black"
             playsInline
             autoPlay
             muted
+            preload="auto"
+            poster={posterSrc}
             onEnded={startFade}
-          />
+          >
+            {videoSources.map((source) => (
+              <source key={source.src} src={source.src} type={source.type} media={source.media} />
+            ))}
+          </video>
 
           <motion.div
             className="pointer-events-none absolute inset-0 bg-black"

@@ -1,14 +1,26 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { Loader2, Ticket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overlay";
 
-const CINEMATIC_VIDEO = "/animations/gacha/uma-cinematic-1.mp4";
+const CINEMATIC_SOURCES = [
+  {
+    src: "/animations/gacha/uma-cinematic-1.mp4",
+    type: "video/mp4",
+    media: "(min-width: 768px)",
+  },
+  {
+    src: "/animations/gacha/uma-cinematic-1-mobile.mp4",
+    type: "video/mp4",
+    media: "(max-width: 767px)",
+  },
+];
+const CINEMATIC_POSTER = "/animations/gacha/uma-cinematic-1-poster.jpg";
 const CINEMATIC_AUDIO = "/animations/gacha/uma-cinematic-1.m4a";
 export type DrawResult = {
   horseId: string;
@@ -41,16 +53,42 @@ export function GachaDrawPanel({ gachaId }: Props) {
   const [displayResults, setDisplayResults] = useState<DrawResult[]>([]);
   const [cinematicResults, setCinematicResults] = useState<DrawResult[] | null>(null);
   const [cinematicOpen, setCinematicOpen] = useState(false);
+  const [audioPrimed, setAudioPrimed] = useState(false);
+  const [cinematicAudio, setCinematicAudio] = useState<HTMLAudioElement | null>(null);
   
   const highlight = useMemo(() => {
     if (!displayResults.length) return null;
     return displayResults.reduce((top, current) => (current.rarity > top.rarity ? current : top), displayResults[0]);
   }, [displayResults]);
 
+  const primeCinematicAudio = useCallback(() => {
+    if (audioPrimed && cinematicAudio) return;
+    const audio = new Audio(CINEMATIC_AUDIO);
+    audio.preload = "auto";
+    audio.loop = false;
+    audio.volume = 0;
+    audio.muted = true;
+    const finalize = () => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+      audio.volume = 0.85;
+      setCinematicAudio(audio);
+      setAudioPrimed(true);
+    };
+    const playPromise = audio.play();
+    if (playPromise) {
+      playPromise.then(finalize).catch(finalize);
+    } else {
+      finalize();
+    }
+  }, [audioPrimed, cinematicAudio]);
+
   const runDraw = (repeat: number) => {
     setMessage(null);
     setWarning(null);
     setDisplayResults([]);
+    primeCinematicAudio();
     startTransition(async () => {
       try {
         const response = await fetch(`/api/gachas/${gachaId}/pull`, {
@@ -107,8 +145,10 @@ export function GachaDrawPanel({ gachaId }: Props) {
         open={cinematicOpen}
         results={cinematicResults ?? []}
         onFinish={handleCinematicFinish}
-        videoSrc={CINEMATIC_VIDEO}
+        videoSources={CINEMATIC_SOURCES}
+        posterSrc={CINEMATIC_POSTER}
         audioSrc={CINEMATIC_AUDIO}
+        primedAudio={audioPrimed ? cinematicAudio ?? undefined : undefined}
       />
       <div className="flex flex-wrap gap-2">
         <Button className="flex-1" disabled={pending || cinematicOpen} onClick={() => runDraw(1)}>
