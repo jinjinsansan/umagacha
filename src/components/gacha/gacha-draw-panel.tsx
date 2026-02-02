@@ -11,11 +11,11 @@ import { buildAssetUrl } from "@/lib/assets";
 
 const CINEMATIC_SOURCES = [
   {
-    src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v3.webm"),
+    src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.webm"),
     type: "video/webm",
   },
   {
-    src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v3.mp4"),
+    src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.mp4"),
     type: "video/mp4",
   },
 ];
