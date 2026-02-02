@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { SkipForward } from "lucide-react";
@@ -82,7 +82,6 @@ export function GachaCinematicOverlay({
   const [phase, setPhase] = useState<Phase>("video");
   const [fadeProgress, setFadeProgress] = useState(0);
   const [timelineState, setTimelineState] = useState<TimelineState>({ snow: false, logo: false, gold: false });
-  const [videoOrientation, setVideoOrientation] = useState<"portrait" | "landscape" | "unknown">("unknown");
   const [videoReady, setVideoReady] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -112,16 +111,6 @@ export function GachaCinematicOverlay({
   }, []);
 
   const handleLoadedMetadata = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const width = video.videoWidth || 0;
-    const height = video.videoHeight || 0;
-    if (width === 0 || height === 0) {
-      setVideoOrientation("portrait");
-      setVideoReady(true);
-      return;
-    }
-    setVideoOrientation(height >= width ? "portrait" : "landscape");
     setVideoReady(true);
   }, []);
 
@@ -238,7 +227,6 @@ export function GachaCinematicOverlay({
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       setVideoReady(false);
-      setVideoOrientation("unknown");
       if (!open) return;
       const video = videoRef.current;
       if (video && video.readyState >= 1) {
@@ -266,14 +254,6 @@ export function GachaCinematicOverlay({
 
   if (typeof window === "undefined") return null;
 
-  const needsRotation = videoOrientation === "landscape";
-  const videoClassName = needsRotation
-    ? "pointer-events-none h-[100vw] w-[100vh] object-cover"
-    : "pointer-events-none h-full w-full object-cover";
-  const videoStyle: CSSProperties | undefined = needsRotation
-    ? { transform: "rotate(90deg)", transformOrigin: "center center" }
-    : undefined;
-
   return createPortal(
     <AnimatePresence>
       {open ? (
@@ -284,13 +264,12 @@ export function GachaCinematicOverlay({
           exit={{ opacity: 0 }}
         >
           <div
-            className={`pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden bg-black transition-opacity duration-300 ${videoReady ? "opacity-100" : "opacity-0"}`}
+            className={`pointer-events-none absolute inset-0 overflow-hidden bg-black transition-opacity duration-300 ${videoReady ? "opacity-100" : "opacity-0"}`}
           >
             <video
               key={videoSourceKey}
               ref={videoRef}
-              className={videoClassName}
-              style={videoStyle}
+              className="absolute inset-0 w-screen h-screen object-cover"
               playsInline
               autoPlay
               muted
