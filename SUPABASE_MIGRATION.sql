@@ -269,14 +269,12 @@ ALTER TABLE horses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gacha_rates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gacha_animations ENABLE ROW LEVEL SECURITY;
 
--- 既存のポリシーを削除（エラーが出ても問題ありません）
 DROP POLICY IF EXISTS "Anyone can view ticket_types" ON ticket_types;
 DROP POLICY IF EXISTS "Anyone can view active gachas" ON gachas;
 DROP POLICY IF EXISTS "Anyone can view active horses" ON horses;
 DROP POLICY IF EXISTS "Anyone can view gacha_rates" ON gacha_rates;
 DROP POLICY IF EXISTS "Anyone can view gacha_animations" ON gacha_animations;
 
--- 公開読み取りポリシーを作成
 CREATE POLICY "Anyone can view ticket_types" ON ticket_types
   FOR SELECT USING (true);
 
