@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { GachaAnimationPreview } from "@/components/gacha/gacha-animation";
 import { GachaDrawPanel } from "@/components/gacha/gacha-draw-panel";
 import { GachaHistory } from "@/components/gacha/gacha-history";
 import {
@@ -24,14 +23,6 @@ type Params = {
 
 function formatRarity(range: [number, number]) {
   return `★${range[0]}〜${range[1]}`;
-}
-
-function selectAnimation(range: [number, number]) {
-  const max = range[1];
-  if (max >= 10) return "arima" as const;
-  if (max >= 7) return "birth" as const;
-  if (max <= 3) return "stables" as const;
-  return "g1" as const;
 }
 
 export default async function GachaDetailPage({ params }: Params) {
@@ -72,23 +63,6 @@ export default async function GachaDetailPage({ params }: Params) {
         <CardContent className="mt-5 p-0">
           <GachaDrawPanel gachaId={resolvedGachaId} />
         </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="p-0">
-          <CardTitle>演出</CardTitle>
-          <CardDescription>レア度別に4パターンを切り替えます。</CardDescription>
-        </CardHeader>
-        <CardContent className="mt-4 grid gap-3 p-0 text-sm text-text-muted">
-          <p>★1-3: 厩舎トレーニング (4s)</p>
-          <p>★4-6: G1レーススタート (5s)</p>
-          <p>★7-9: 名馬の誕生 (6s)</p>
-          <p>★10-12: 有馬記念フィナーレ (8s)</p>
-        </CardContent>
-      </Card>
-
-      <Card className="p-4">
-        <GachaAnimationPreview animation={selectAnimation(detail.rarityRange)} />
       </Card>
 
       <GachaHistory title="直近のガチャ履歴" limit={10} />
