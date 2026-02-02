@@ -7,10 +7,28 @@ type DbGacha = Database["public"]["Tables"]["gachas"]["Row"] & {
   ticket_types: Pick<Database["public"]["Tables"]["ticket_types"]["Row"], "name" | "code" | "color">;
 };
 
+const CANONICAL_IDS = new Set(GACHA_DEFINITIONS.map((item) => item.id));
+
+function normalizeCode(raw: string | null): string | null {
+  if (!raw) return null;
+  const lower = raw.toLowerCase();
+  if (CANONICAL_IDS.has(lower as (typeof GACHA_DEFINITIONS)[number]["id"])) {
+    return lower;
+  }
+
+  const stripped = lower.replace(/[-_\s]?(ticket|gacha)$/g, "");
+  if (CANONICAL_IDS.has(stripped as (typeof GACHA_DEFINITIONS)[number]["id"])) {
+    return stripped;
+  }
+
+  return lower;
+}
+
 function mapDbToDefinition(gacha: DbGacha) {
-  const code = (gacha.ticket_types.code ?? "").toLowerCase() as (typeof GACHA_DEFINITIONS)[number]["id"];
+  const normalizedCode =
+    normalizeCode(gacha.ticket_types.code) ?? (gacha.id?.toLowerCase() as (typeof GACHA_DEFINITIONS)[number]["id"]);
   return {
-    id: code,
+    id: normalizedCode,
     name: gacha.name,
     rarityRange: [gacha.min_rarity, gacha.max_rarity] as [number, number],
     ticketLabel: gacha.ticket_types.name,

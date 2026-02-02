@@ -11,6 +11,7 @@ import { GachaAnimationPreview } from "@/components/gacha/gacha-animation";
 import { GachaDrawPanel } from "@/components/gacha/gacha-draw-panel";
 import { GachaHistory } from "@/components/gacha/gacha-history";
 import { fetchGachaCatalog } from "@/lib/utils/gacha";
+import { GACHA_DEFINITIONS } from "@/constants/gacha";
 
 type Params = {
   params: { id: string };
@@ -37,7 +38,8 @@ export default async function GachaDetailPage({ params }: Params) {
       cache: "no-store",
     }).then(async (res) => res.json().catch(() => ({ rates: [] }))),
   ]);
-  const detail = catalog.find((item) => item.id === params.id);
+  const detail = catalog.find((item) => item.id === params.id)
+    ?? GACHA_DEFINITIONS.find((item) => item.id === params.id);
 
   if (!detail) {
     notFound();
