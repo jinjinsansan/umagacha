@@ -8,8 +8,9 @@ type DbGacha = Database["public"]["Tables"]["gachas"]["Row"] & {
 };
 
 function mapDbToDefinition(gacha: DbGacha) {
+  const code = (gacha.ticket_types.code ?? "").toLowerCase() as (typeof GACHA_DEFINITIONS)[number]["id"];
   return {
-    id: gacha.ticket_types.code as (typeof GACHA_DEFINITIONS)[number]["id"],
+    id: code,
     name: gacha.name,
     rarityRange: [gacha.min_rarity, gacha.max_rarity] as [number, number],
     ticketLabel: gacha.ticket_types.name,
