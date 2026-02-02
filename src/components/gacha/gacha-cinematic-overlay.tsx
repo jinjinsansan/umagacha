@@ -31,7 +31,7 @@ type TimelineState = {
 
 const FADE_DURATION = 800;
 const DEFAULT_VIDEO_SOURCES = [
-  { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v2.mp4"), type: "video/mp4" },
+  { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v3.mp4"), type: "video/mp4" },
 ];
 const DEFAULT_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-2.m4a");
 const LOGO_ASSET = buildAssetUrl("assets/uma-royale-logo-transparent.png");
