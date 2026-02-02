@@ -10,7 +10,12 @@ import {
 import { GachaAnimationPreview } from "@/components/gacha/gacha-animation";
 import { GachaDrawPanel } from "@/components/gacha/gacha-draw-panel";
 import { GachaHistory } from "@/components/gacha/gacha-history";
-import { buildGachaSearchKey, canonicalizeGachaId, fetchGachaCatalog } from "@/lib/utils/gacha";
+import {
+  buildGachaSearchKey,
+  canonicalizeGachaId,
+  fetchGachaCatalog,
+  gachaIdMatches,
+} from "@/lib/utils/gacha";
 import { GACHA_DEFINITIONS } from "@/constants/gacha";
 
 type Params = {
@@ -32,25 +37,38 @@ function selectAnimation(range: [number, number]) {
 export default async function GachaDetailPage({ params }: Params) {
   type RateRow = { name: string; rarity: number; rate: number };
 
-  const requestedSlug = params.id;
+  const slugParam = params.id;
+  const requestedSlug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
   if (!requestedSlug || typeof requestedSlug !== "string") {
     notFound();
   }
-  const apiSlug = canonicalizeGachaId(requestedSlug) ?? requestedSlug.toLowerCase();
+  const canonicalSlug = canonicalizeGachaId(requestedSlug);
+  const apiSlug = canonicalSlug ?? requestedSlug.toLowerCase();
   const ratesEndpointSlug = encodeURIComponent(apiSlug);
-  const searchKey = buildGachaSearchKey(requestedSlug) ?? apiSlug;
+  const searchKey = canonicalSlug ?? buildGachaSearchKey(requestedSlug) ?? apiSlug;
 
-  const [catalog, ratesResp] = await Promise.all([
-    fetchGachaCatalog(),
-    fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/gachas/${ratesEndpointSlug}/rates`, {
+  const catalogPromise = fetchGachaCatalog().catch((error) => {
+    console.error("[gacha-detail] Failed to fetch catalog, falling back to defaults", error);
+    return GACHA_DEFINITIONS;
+  });
+  const ratesPromise = fetch(
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/gachas/${ratesEndpointSlug}/rates`,
+    {
       cache: "no-store",
-    }).then(async (res) => res.json().catch(() => ({ rates: [] }))),
-  ]);
+    }
+  ).then(async (res) => res.json().catch(() => ({ rates: [] })));
 
-  const detail = catalog.find((item) => buildGachaSearchKey(item.id) === searchKey)
-    ?? GACHA_DEFINITIONS.find((item) => buildGachaSearchKey(item.id) === searchKey);
+  const [catalog, ratesResp] = await Promise.all([catalogPromise, ratesPromise]);
+
+  const detail = catalog.find((item) => gachaIdMatches(item.id, searchKey))
+    ?? GACHA_DEFINITIONS.find((item) => gachaIdMatches(item.id, searchKey));
 
   if (!detail) {
+    console.error("[gacha-detail] Failed to resolve gacha detail", {
+      requestedSlug,
+      searchKey,
+      catalogIds: catalog.map((item) => item.id),
+    });
     notFound();
   }
 
