@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { GACHA_DEFINITIONS } from "@/constants/gacha";
-import { canonicalizeGachaId } from "@/lib/utils/gacha";
+import { buildGachaSearchKey, canonicalizeGachaId } from "@/lib/utils/gacha";
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client";
 import type { Database } from "@/types/database";
 
@@ -8,17 +8,29 @@ type DbGacha = Database["public"]["Tables"]["gachas"]["Row"] & {
   ticket_types: Pick<Database["public"]["Tables"]["ticket_types"]["Row"], "name" | "code" | "color">;
 };
 
+function selectFallbackId(...values: (string | null | undefined)[]) {
+  for (const value of values) {
+    const key = buildGachaSearchKey(value);
+    if (key) {
+      return key;
+    }
+  }
+  return "";
+}
+
 function mapDbToDefinition(gacha: DbGacha) {
   const normalizedCode =
     canonicalizeGachaId(gacha.ticket_types?.code) ??
     canonicalizeGachaId(gacha.ticket_types?.name) ??
     canonicalizeGachaId(gacha.name);
 
-  const fallbackId =
-    normalizedCode ??
-    gacha.ticket_types?.code?.trim().toLowerCase() ??
-    gacha.id?.toLowerCase() ??
-    "";
+  const fallbackId = selectFallbackId(
+    gacha.ticket_types?.code,
+    gacha.ticket_types?.name,
+    gacha.name,
+    gacha.id
+  );
+
   return {
     id: (normalizedCode ?? fallbackId) as (typeof GACHA_DEFINITIONS)[number]["id"],
     name: gacha.name,
