@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { LoginBonusCard } from "@/components/home/login-bonus-card";
 import { fetchGachaCatalog } from "@/lib/utils/gacha";
 import { fetchTicketBalances, type TicketBalanceItem } from "@/lib/utils/tickets";
-import { TICKET_THEMES, type TicketCode } from "@/constants/tickets";
+import { TicketBalanceCarousel } from "@/components/home/ticket-balance-carousel";
 
 const FALLBACK_TICKETS: TicketBalanceItem[] = [
   { code: "free", name: "フリーチケット", quantity: 0, colorToken: "gacha-free", sortOrder: 0 },
@@ -24,17 +24,6 @@ const FALLBACK_TICKETS: TicketBalanceItem[] = [
 
 function formatRarity([min, max]: [number, number]) {
   return `★${min}〜${max}`;
-}
-
-function formatTicketCode(code: string) {
-  return code.toUpperCase();
-}
-
-function getTicketTheme(code: string) {
-  return TICKET_THEMES[code as TicketCode] ?? {
-    gradient: "from-white/10 to-background",
-    badge: "text-text-muted",
-  };
 }
 
 export default async function HomePage() {
@@ -56,23 +45,7 @@ export default async function HomePage() {
             履歴を見る
           </Link>
         </div>
-        <div className="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {tickets.map((ticket) => {
-            const theme = getTicketTheme(ticket.code);
-            return (
-              <div
-                key={ticket.code}
-                className={`min-w-[160px] snap-start rounded-3xl border border-border bg-gradient-to-br ${theme.gradient} px-4 py-4`}
-              >
-                <p className={`text-[0.55rem] tracking-[0.4em] ${theme.badge}`}>
-                  {formatTicketCode(ticket.code)}
-                </p>
-                <p className="mt-4 text-3xl font-semibold">{ticket.quantity}</p>
-                <p className="text-sm text-text-muted">{ticket.name}</p>
-              </div>
-            );
-          })}
-        </div>
+        <TicketBalanceCarousel tickets={tickets} />
       </section>
 
       <LoginBonusCard />
