@@ -19,7 +19,7 @@ import {
 import { GACHA_DEFINITIONS } from "@/constants/gacha";
 
 type Params = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 function formatRarity(range: [number, number]) {
@@ -36,11 +36,13 @@ function selectAnimation(range: [number, number]) {
 
 export default async function GachaDetailPage({ params }: Params) {
   console.log("[gacha-detail] ========== START ==========");
-  console.log("[gacha-detail] Raw params:", JSON.stringify(params, null, 2));
   
   type RateRow = { name: string; rarity: number; rate: number };
 
-  const slugParam = params.id;
+  const resolvedParams = await params;
+  console.log("[gacha-detail] resolvedParams:", JSON.stringify(resolvedParams, null, 2));
+  
+  const slugParam = resolvedParams.id;
   console.log("[gacha-detail] slugParam:", slugParam, "type:", typeof slugParam);
   
   const requestedSlug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
@@ -100,8 +102,25 @@ export default async function GachaDetailPage({ params }: Params) {
 
   const resolvedGachaId = canonicalizeGachaId(detail.id) ?? detail.id;
 
+  const debugInfo = {
+    requestedSlug,
+    canonicalSlug,
+    apiSlug,
+    searchKey,
+    catalogCount: catalog.length,
+    catalogIds: catalog.map((item) => item.id),
+    detailFound: !!detail,
+    detailId: detail?.id,
+  };
+
   return (
     <div className="space-y-6">
+      {/* DEBUG INFO - REMOVE AFTER FIXING */}
+      <details className="rounded-lg border border-amber-500 bg-amber-500/10 p-4 text-xs">
+        <summary className="cursor-pointer font-semibold text-amber-200">🔍 DEBUG INFO</summary>
+        <pre className="mt-2 overflow-auto text-amber-100">{JSON.stringify(debugInfo, null, 2)}</pre>
+      </details>
+      
       <Header
         title={`${detail.name}ガチャ`}
         subtitle={`${detail.ticketLabel} / ${formatRarity(detail.rarityRange)}`}
