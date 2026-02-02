@@ -35,92 +35,30 @@ function selectAnimation(range: [number, number]) {
 }
 
 export default async function GachaDetailPage({ params }: Params) {
-  console.log("[gacha-detail] ========== START ==========");
-  
-  type RateRow = { name: string; rarity: number; rate: number };
-
   const resolvedParams = await params;
-  console.log("[gacha-detail] resolvedParams:", JSON.stringify(resolvedParams, null, 2));
-  
   const slugParam = resolvedParams.id;
-  console.log("[gacha-detail] slugParam:", slugParam, "type:", typeof slugParam);
-  
   const requestedSlug = Array.isArray(slugParam) ? slugParam[0] : slugParam;
-  console.log("[gacha-detail] requestedSlug:", requestedSlug);
-  
+
   if (!requestedSlug || typeof requestedSlug !== "string") {
-    console.error("[gacha-detail] NOTFOUND #1: Invalid requestedSlug");
     notFound();
   }
-  
+
   const canonicalSlug = canonicalizeGachaId(requestedSlug);
-  console.log("[gacha-detail] canonicalSlug:", canonicalSlug);
-  
-  const apiSlug = canonicalSlug ?? requestedSlug.toLowerCase();
-  console.log("[gacha-detail] apiSlug:", apiSlug);
-  
-  const ratesEndpointSlug = encodeURIComponent(apiSlug);
-  const searchKey = canonicalSlug ?? buildGachaSearchKey(requestedSlug) ?? apiSlug;
-  console.log("[gacha-detail] searchKey:", searchKey);
+  const searchKey = canonicalSlug ?? buildGachaSearchKey(requestedSlug) ?? requestedSlug.toLowerCase();
 
-  const catalogPromise = fetchGachaCatalog().catch((error) => {
-    console.error("[gacha-detail] Failed to fetch catalog, falling back to defaults", error);
-    return GACHA_DEFINITIONS;
-  });
-  const ratesPromise = fetch(
-    `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/gachas/${ratesEndpointSlug}/rates`,
-    {
-      cache: "no-store",
-    }
-  ).then(async (res) => res.json().catch(() => ({ rates: [] })));
+  const catalog = await fetchGachaCatalog().catch(() => GACHA_DEFINITIONS);
 
-  const [catalog, ratesResp] = await Promise.all([catalogPromise, ratesPromise]);
-  console.log("[gacha-detail] catalog count:", catalog.length);
-  console.log("[gacha-detail] catalog IDs:", catalog.map((item) => item.id));
-
-  const detail = catalog.find((item) => {
-    const matches = gachaIdMatches(item.id, searchKey);
-    console.log(`[gacha-detail] Checking ${item.id} vs ${searchKey}: ${matches}`);
-    return matches;
-  }) ?? GACHA_DEFINITIONS.find((item) => {
-    const matches = gachaIdMatches(item.id, searchKey);
-    console.log(`[gacha-detail] [FALLBACK] Checking ${item.id} vs ${searchKey}: ${matches}`);
-    return matches;
-  });
-
-  console.log("[gacha-detail] detail found:", !!detail, detail ? `id=${detail.id}` : "NONE");
+  const detail = catalog.find((item) => gachaIdMatches(item.id, searchKey))
+    ?? GACHA_DEFINITIONS.find((item) => gachaIdMatches(item.id, searchKey));
 
   if (!detail) {
-    console.error("[gacha-detail] NOTFOUND #2: Failed to resolve gacha detail", {
-      requestedSlug,
-      searchKey,
-      catalogIds: catalog.map((item) => item.id),
-      fallbackIds: GACHA_DEFINITIONS.map((item) => item.id),
-    });
     notFound();
   }
 
   const resolvedGachaId = canonicalizeGachaId(detail.id) ?? detail.id;
 
-  const debugInfo = {
-    requestedSlug,
-    canonicalSlug,
-    apiSlug,
-    searchKey,
-    catalogCount: catalog.length,
-    catalogIds: catalog.map((item) => item.id),
-    detailFound: !!detail,
-    detailId: detail?.id,
-  };
-
   return (
     <div className="space-y-6">
-      {/* DEBUG INFO - REMOVE AFTER FIXING */}
-      <details className="rounded-lg border border-amber-500 bg-amber-500/10 p-4 text-xs">
-        <summary className="cursor-pointer font-semibold text-amber-200">🔍 DEBUG INFO</summary>
-        <pre className="mt-2 overflow-auto text-amber-100">{JSON.stringify(debugInfo, null, 2)}</pre>
-      </details>
-      
       <Header
         title={`${detail.name}ガチャ`}
         subtitle={`${detail.ticketLabel} / ${formatRarity(detail.rarityRange)}`}
@@ -133,42 +71,6 @@ export default async function GachaDetailPage({ params }: Params) {
         </CardHeader>
         <CardContent className="mt-5 p-0">
           <GachaDrawPanel gachaId={resolvedGachaId} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="p-0">
-          <CardTitle>提供割合</CardTitle>
-          <CardDescription>DBに登録された提供割合を表示します。</CardDescription>
-        </CardHeader>
-        <CardContent className="mt-4 space-y-3 p-0">
-          {ratesResp?.rates?.length ? (
-            (() => {
-              const items = (ratesResp.rates as RateRow[]).sort((a, b) => b.rarity - a.rarity || b.rate - a.rate);
-              const total = items.reduce((sum, r) => sum + Number(r.rate || 0), 0);
-              return (
-                <>
-                  <div className="flex items-center justify-between rounded-2xl border border-border px-4 py-3 text-xs text-text-muted">
-                    <span>合計</span>
-                    <span className={total === 100 ? "text-accent" : "text-amber-400"}>{total}</span>
-                  </div>
-                  {items.map((rate, idx) => (
-                    <div
-                      key={`${rate.name}-${idx}`}
-                      className="flex items-center justify-between rounded-2xl border border-border px-4 py-3"
-                    >
-                      <span>
-                        {rate.name} (★{rate.rarity})
-                      </span>
-                      <span className="font-semibold text-accent">{rate.rate}</span>
-                    </div>
-                  ))}
-                </>
-              );
-            })()
-          ) : (
-            <p className="text-sm text-text-muted">提供割合が未登録です</p>
-          )}
         </CardContent>
       </Card>
 
