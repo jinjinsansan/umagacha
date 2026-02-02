@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { SkipForward, Sparkles } from "lucide-react";
 import type { DrawResult } from "@/components/gacha/gacha-draw-panel";
@@ -12,43 +13,54 @@ type CinematicOverlayProps = {
   onFinish: () => void;
 };
 
-const PHASE_TIMINGS = [4000, 9000, 12000, 15000];
+const PHASE_TIMINGS = [4000, 9000, 12000];
 
 export function GachaCinematicOverlay({ open, results, onFinish }: CinematicOverlayProps) {
   const [phase, setPhase] = useState(0);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const highlight = useMemo(() => {
     if (!results.length) return null;
     return results.reduce((top, current) => (current.rarity > top.rarity ? current : top), results[0]);
   }, [results]);
 
-  const handleFinish = useCallback(() => {
-    onFinish();
-  }, [onFinish]);
+  const clearTimers = useCallback(() => {
+    timersRef.current.forEach((timer) => clearTimeout(timer));
+    timersRef.current = [];
+  }, []);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const timers = [
+  const startTimeline = useCallback(() => {
+    clearTimers();
+    timersRef.current = [
       setTimeout(() => setPhase(1), PHASE_TIMINGS[0]),
       setTimeout(() => setPhase(2), PHASE_TIMINGS[1]),
       setTimeout(() => setPhase(3), PHASE_TIMINGS[2]),
-      setTimeout(() => handleFinish(), PHASE_TIMINGS[3]),
     ];
+  }, [clearTimers]);
 
-    return () => {
-      timers.forEach((timer) => clearTimeout(timer));
-    };
-  }, [open, handleFinish]);
+  const handleFinish = useCallback(() => {
+    clearTimers();
+    onFinish();
+  }, [clearTimers, onFinish]);
+
+  useEffect(() => {
+    if (!open) {
+      clearTimers();
+      return;
+    }
+
+    startTimeline();
+    return clearTimers;
+  }, [open, startTimeline, clearTimers]);
 
   const handleSkip = () => {
+    clearTimers();
     setPhase(3);
-    handleFinish();
   };
 
-  return (
+  if (typeof window === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {open ? (
         <motion.div
@@ -138,6 +150,7 @@ export function GachaCinematicOverlay({ open, results, onFinish }: CinematicOver
                         src={highlight.cardImageUrl}
                         alt={highlight.horse}
                         fill
+                        sizes="(max-width: 768px) 80vw, 400px"
                         className="object-cover"
                       />
                     </div>
@@ -155,6 +168,7 @@ export function GachaCinematicOverlay({ open, results, onFinish }: CinematicOver
           </div>
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
