@@ -90,6 +90,14 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const envAdmins = (process.env.ADMIN_EMAILS ?? process.env.ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+  const defaultAdmins = ["goldbenchan@gmail.com", "kusano1@gmail.com"];
+  const adminEmails = envAdmins.length > 0 ? envAdmins : defaultAdmins;
+  const isAdmin = user.email ? adminEmails.includes(user.email.toLowerCase()) : false;
+
   const { data: gachaRows } = await supabase
     .from("gachas")
     .select("*, ticket_types(id, name, code, color), gacha_rates(rate, horses(id, name, rarity, card_image_url))")
@@ -114,22 +122,30 @@ export async function POST(
     );
   }
 
-  const { data: balances, error: balanceError } = await supabase
-    .from("user_tickets")
-    .select("id, quantity, ticket_type_id")
-    .eq("user_id", user.id)
-    .eq("ticket_type_id", gacha.ticket_type_id)
-    .limit(1)
-    .maybeSingle();
+  let ticketBalanceQuantity = Number.MAX_SAFE_INTEGER;
+  let ticketBalanceId: string | null = null;
 
-  if (balanceError) {
-    return applyCookies(NextResponse.json({ error: balanceError.message }, { status: 500 }));
-  }
+  if (!isAdmin) {
+    const { data: balances, error: balanceError } = await supabase
+      .from("user_tickets")
+      .select("id, quantity, ticket_type_id")
+      .eq("user_id", user.id)
+      .eq("ticket_type_id", gacha.ticket_type_id)
+      .limit(1)
+      .maybeSingle();
 
-  if (!balances || balances.quantity < repeat) {
-    return applyCookies(
-      NextResponse.json({ error: "チケットが不足しています" }, { status: 400 })
-    );
+    if (balanceError) {
+      return applyCookies(NextResponse.json({ error: balanceError.message }, { status: 500 }));
+    }
+
+    if (!balances || balances.quantity < repeat) {
+      return applyCookies(
+        NextResponse.json({ error: "チケットが不足しています" }, { status: 400 })
+      );
+    }
+
+    ticketBalanceQuantity = balances.quantity ?? 0;
+    ticketBalanceId = balances.id;
   }
 
   const candidates = gacha.gacha_rates
@@ -162,13 +178,15 @@ export async function POST(
   });
 
   // Update tickets
-  const { error: updateError } = await supabase
-    .from("user_tickets")
-    .update({ quantity: balances.quantity - repeat })
-    .eq("id", balances.id);
+  if (!isAdmin && ticketBalanceId) {
+    const { error: updateError } = await supabase
+      .from("user_tickets")
+      .update({ quantity: ticketBalanceQuantity - repeat })
+      .eq("id", ticketBalanceId);
 
-  if (updateError) {
-    return applyCookies(NextResponse.json({ error: updateError.message }, { status: 500 }));
+    if (updateError) {
+      return applyCookies(NextResponse.json({ error: updateError.message }, { status: 500 }));
+    }
   }
 
   // Upsert collections
@@ -236,7 +254,8 @@ export async function POST(
       {
         ticket: gacha.ticket_types.name,
         results: enrichedResults,
-        remaining: balances.quantity - repeat,
+        remaining: isAdmin ? null : ticketBalanceQuantity - repeat,
+        adminMode: isAdmin,
       },
       { status: 200 }
     )
