@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overlay";
+
+const CINEMATIC_VIDEO = "/animations/gacha/uma-cinematic-1.mp4";
+const CINEMATIC_AUDIO = "/animations/gacha/uma-cinematic-1.m4a";
 export type DrawResult = {
   horseId: string;
   horse: string;
@@ -107,6 +110,8 @@ export function GachaDrawPanel({ gachaId }: Props) {
         open={cinematicOpen}
         results={cinematicResults ?? []}
         onFinish={handleCinematicFinish}
+        videoSrc={CINEMATIC_VIDEO}
+        audioSrc={CINEMATIC_AUDIO}
       />
       <div className="flex flex-wrap gap-2">
         <Button className="flex-1" disabled={pending || cinematicOpen} onClick={() => runDraw(1)}>

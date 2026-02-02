@@ -11,13 +11,19 @@ type CinematicOverlayProps = {
   open: boolean;
   results: DrawResult[];
   onFinish: () => void;
+  videoSrc?: string;
+  audioSrc?: string;
 };
 
 const PHASE_TIMINGS = [4000, 9000, 12000];
+const TOTAL_DURATION = 15000;
+const DEFAULT_VIDEO = "/animations/gacha/uma-cinematic-1.mp4";
+const DEFAULT_AUDIO = "/animations/gacha/uma-cinematic-1.m4a";
 
-export function GachaCinematicOverlay({ open, results, onFinish }: CinematicOverlayProps) {
+export function GachaCinematicOverlay({ open, results, onFinish, videoSrc, audioSrc }: CinematicOverlayProps) {
   const [phase, setPhase] = useState(0);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const highlight = useMemo(() => {
     if (!results.length) return null;
@@ -29,36 +35,66 @@ export function GachaCinematicOverlay({ open, results, onFinish }: CinematicOver
     timersRef.current = [];
   }, []);
 
+  const stopAudio = useCallback(() => {
+    const media = audioRef.current;
+    if (!media) return;
+    media.pause();
+    media.currentTime = 0;
+    audioRef.current = null;
+  }, []);
+
+  const handleFinish = useCallback(() => {
+    clearTimers();
+    stopAudio();
+    onFinish();
+  }, [clearTimers, stopAudio, onFinish]);
+
   const startTimeline = useCallback(() => {
     clearTimers();
     timersRef.current = [
       setTimeout(() => setPhase(1), PHASE_TIMINGS[0]),
       setTimeout(() => setPhase(2), PHASE_TIMINGS[1]),
       setTimeout(() => setPhase(3), PHASE_TIMINGS[2]),
+      setTimeout(() => setPhase(3), TOTAL_DURATION - 1000),
+      setTimeout(() => handleFinish(), TOTAL_DURATION),
     ];
-  }, [clearTimers]);
-
-  const handleFinish = useCallback(() => {
-    clearTimers();
-    onFinish();
-  }, [clearTimers, onFinish]);
+  }, [clearTimers, handleFinish]);
 
   useEffect(() => {
     if (!open) {
       clearTimers();
+      stopAudio();
       return;
     }
 
     startTimeline();
-    return clearTimers;
-  }, [open, startTimeline, clearTimers]);
+    return () => {
+      clearTimers();
+      stopAudio();
+    };
+  }, [open, startTimeline, clearTimers, stopAudio]);
+
+  useEffect(() => {
+    if (!open) return;
+    const media = new Audio(audioSrc ?? DEFAULT_AUDIO);
+    media.volume = 0.85;
+    media.loop = false;
+    media.play().catch(() => null);
+    audioRef.current = media;
+    return () => {
+      media.pause();
+    };
+  }, [open, audioSrc]);
 
   const handleSkip = () => {
     clearTimers();
+    stopAudio();
     setPhase(3);
   };
 
   if (typeof window === "undefined") return null;
+
+  const resolvedVideo = videoSrc ?? DEFAULT_VIDEO;
 
   return createPortal(
     <AnimatePresence>
@@ -69,6 +105,15 @@ export function GachaCinematicOverlay({ open, results, onFinish }: CinematicOver
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
+          <video
+            key={resolvedVideo}
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            src={resolvedVideo}
+            playsInline
+            autoPlay
+            muted
+          />
+
           <button
             type="button"
             onClick={handleSkip}
