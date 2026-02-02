@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { SkipForward } from "lucide-react";
 import type { DrawResult } from "@/components/gacha/gacha-draw-panel";
+import { buildAssetUrl } from "@/lib/assets";
 
 type CinematicOverlayProps = {
   open: boolean;
@@ -30,10 +31,10 @@ type TimelineState = {
 
 const FADE_DURATION = 800;
 const DEFAULT_VIDEO_SOURCES = [
-  { src: "/animations/gacha/uma-cinematic-2-portrait-v2.mp4", type: "video/mp4" },
+  { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v2.mp4"), type: "video/mp4" },
 ];
-const DEFAULT_AUDIO = "/animations/gacha/uma-cinematic-2.m4a";
-const LOGO_ASSET = "/assets/uma-royale-logo-transparent.png";
+const DEFAULT_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-2.m4a");
+const LOGO_ASSET = buildAssetUrl("assets/uma-royale-logo-transparent.png");
 
 type Particle = {
   id: string;

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { buildAssetUrl } from "@/lib/assets";
 
 const ONBOARDING_KEY = "uma:onboarded";
 
@@ -14,8 +15,8 @@ export function SplashGateway() {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("splash");
   const logos = {
-    crest: "/assets/uma-royale-logo-transparent.png",
-    full: "/assets/uma-royale-logo-transparent.png",
+    crest: buildAssetUrl("assets/uma-royale-logo-transparent.png"),
+    full: buildAssetUrl("assets/uma-royale-logo-transparent.png"),
   };
 
   useEffect(() => {

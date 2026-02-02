@@ -5,6 +5,7 @@ const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   NEXT_PUBLIC_ONE_LAT_BASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_R2_PUBLIC_BASE_URL: z.string().url().optional(),
 });
 
 const serverSchema = z.object({
@@ -24,6 +25,7 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_ONE_LAT_BASE_URL: process.env.NEXT_PUBLIC_ONE_LAT_BASE_URL,
+  NEXT_PUBLIC_R2_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_R2_PUBLIC_BASE_URL,
 });
 
 export function getServerEnv() {

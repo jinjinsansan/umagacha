@@ -4,6 +4,7 @@ import { createSupabaseRouteClient } from "@/lib/supabase/route-client";
 import type { Database } from "@/types/database";
 import { pickWeighted } from "@/lib/utils/api";
 import { canonicalizeGachaId, gachaIdMatches } from "@/lib/utils/gacha";
+import { resolveMediaUrl } from "@/lib/assets";
 
 type DbGacha = Database["public"]["Tables"]["gachas"]["Row"] & {
   ticket_types: Pick<Database["public"]["Tables"]["ticket_types"]["Row"], "id" | "name" | "code" | "color">;
@@ -66,7 +67,7 @@ function fallbackResult(id: string, repeat: number) {
       rarity: selection.rarity,
       animation: resolveAnimation(selection.rarity, []).key,
       horseId: selection.id,
-      cardImageUrl: selection.card_image_url ?? null,
+      cardImageUrl: resolveMediaUrl(selection.card_image_url ?? null),
     };
   });
 
@@ -173,15 +174,17 @@ export async function POST(
   const results = Array.from({ length: repeat }).map(() => {
     const picked = pickWeighted(candidates) ?? FALLBACK_HORSES[0];
     const animation = resolveAnimation(picked.rarity, animations ?? []);
+    const cardImageRaw =
+      ("card_image_url" in picked ? (picked as { card_image_url?: string | null }).card_image_url : null) ?? null;
     return {
       horseId: picked.id,
       horse: picked.name,
       rarity: picked.rarity,
-      cardImageUrl: ("card_image_url" in picked ? (picked as { card_image_url?: string | null }).card_image_url : null) ?? null,
+      cardImageUrl: resolveMediaUrl(cardImageRaw),
       animation: animation.key,
       animationName: animation.name,
       animationType: animation.type,
-      animationAssetUrl: animation.asset_url,
+      animationAssetUrl: resolveMediaUrl(animation.asset_url ?? null),
     };
   });
 

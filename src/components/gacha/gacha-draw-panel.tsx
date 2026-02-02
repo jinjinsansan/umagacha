@@ -7,15 +7,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overlay";
+import { buildAssetUrl } from "@/lib/assets";
 
+const CINEMATIC_VIDEO = buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v2.mp4");
 const CINEMATIC_SOURCES = [
   {
-    src: "/animations/gacha/uma-cinematic-2-portrait-v2.mp4",
+    src: CINEMATIC_VIDEO,
     type: "video/mp4",
   },
 ];
-const CINEMATIC_POSTER = "/animations/gacha/uma-cinematic-2-poster-v2.jpg";
-const CINEMATIC_AUDIO = "/animations/gacha/uma-cinematic-2.m4a";
+const CINEMATIC_POSTER = buildAssetUrl("animations/gacha/uma-cinematic-2-poster-v2.jpg");
+const CINEMATIC_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-2.m4a");
 export type DrawResult = {
   horseId: string;
   horse: string;
