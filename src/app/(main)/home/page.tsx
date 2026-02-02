@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LoginBonusCard } from "@/components/home/login-bonus-card";
-import { fetchGachaCatalog } from "@/lib/utils/gacha";
+import { canonicalizeGachaId, fetchGachaCatalog } from "@/lib/utils/gacha";
 import { fetchTicketBalances, type TicketBalanceItem } from "@/lib/utils/tickets";
 import { TicketBalanceCarousel } from "@/components/home/ticket-balance-carousel";
 
@@ -58,7 +58,10 @@ export default async function HomePage() {
           </Link>
         </div>
         <div className="space-y-4">
-          {gachaTiers.map((tier) => (
+          {gachaTiers.map((tier) => {
+            const fallbackSlug = typeof tier.id === "string" ? tier.id.toLowerCase() : tier.id;
+            const slug = canonicalizeGachaId(tier.id) ?? fallbackSlug;
+            return (
             <Card
               key={tier.id}
               className={`bg-gradient-to-r ${tier.gradient} relative overflow-hidden`}
@@ -83,20 +86,21 @@ export default async function HomePage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm">
-                    <Link href={`/gacha/${tier.id}`}>1回ガチャ</Link>
+                    <Link href={`/gacha/${slug}`}>1回ガチャ</Link>
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/gacha/${tier.id}?mode=multi`}>10連ガチャ</Link>
+                    <Link href={`/gacha/${slug}?mode=multi`}>10連ガチャ</Link>
                   </Button>
                   <Button variant="ghost" size="sm" asChild>
-                    <Link href={`/gacha/${tier.id}#rates`} className="text-xs">
+                    <Link href={`/gacha/${slug}#rates`} className="text-xs">
                       提供割合
                     </Link>
                   </Button>
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       </section>
 

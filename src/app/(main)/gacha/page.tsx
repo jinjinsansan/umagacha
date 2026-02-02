@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
 import { GACHA_ANIMATIONS } from "@/constants/gacha";
-import { fetchGachaCatalog } from "@/lib/utils/gacha";
+import { canonicalizeGachaId, fetchGachaCatalog } from "@/lib/utils/gacha";
 
 const categories = [
   { value: "spot", label: "ピックアップ" },
@@ -29,7 +29,10 @@ export default async function GachaHubPage() {
       <Tabs tabs={categories} />
 
       <section className="space-y-4">
-        {featured.map((item) => (
+        {featured.map((item) => {
+          const fallbackSlug = typeof item.id === "string" ? item.id.toLowerCase() : item.id;
+          const slug = canonicalizeGachaId(item.id) ?? fallbackSlug;
+          return (
           <Card key={item.id} className="bg-gradient-to-br from-secondary/40 to-background">
             <CardHeader className="p-0">
               <CardTitle className="flex items-center justify-between">
@@ -42,12 +45,13 @@ export default async function GachaHubPage() {
               <span className="flex items-center gap-2 text-text-muted">
                 <Sparkles className="h-4 w-4 text-accent" />演出強化中
               </span>
-              <Link href={`/gacha/${item.id}`} className="text-accent underline-offset-4 hover:underline">
+              <Link href={`/gacha/${slug}`} className="text-accent underline-offset-4 hover:underline">
                 詳細を見る
               </Link>
             </CardContent>
           </Card>
-        ))}
+        );
+        })}
       </section>
 
       <Card>

@@ -3,6 +3,7 @@ import { GACHA_ANIMATIONS, GACHA_DEFINITIONS } from "@/constants/gacha";
 import { createSupabaseRouteClient } from "@/lib/supabase/route-client";
 import type { Database } from "@/types/database";
 import { pickWeighted } from "@/lib/utils/api";
+import { canonicalizeGachaId, gachaIdMatches } from "@/lib/utils/gacha";
 
 type DbGacha = Database["public"]["Tables"]["gachas"]["Row"] & {
   ticket_types: Pick<Database["public"]["Tables"]["ticket_types"]["Row"], "id" | "name" | "code" | "color">;
@@ -77,6 +78,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const resolvedSlug = canonicalizeGachaId(id) ?? id.toLowerCase();
   const body = await request.json().catch(() => ({ repeat: 1 }));
   const repeat = Math.min(Math.max(Number(body.repeat) || 1, 1), 10);
   const { supabase, applyCookies } = createSupabaseRouteClient(request);
@@ -101,15 +103,21 @@ export async function POST(
   const { data: gachaRows } = await supabase
     .from("gachas")
     .select("*, ticket_types(id, name, code, color), gacha_rates(rate, horses(id, name, rarity, card_image_url))")
-    .eq("ticket_types.code", id)
     .eq("is_active", true)
-    .limit(1)
     .returns<DbGacha[]>();
 
-  const gacha = gachaRows?.[0];
+  const gacha = (gachaRows ?? []).find((entry) => {
+    const identifiers = [
+      entry.ticket_types?.code,
+      entry.ticket_types?.name,
+      entry.name,
+      entry.id,
+    ];
+    return identifiers.some((candidate) => gachaIdMatches(candidate ?? null, resolvedSlug));
+  });
 
   if (!gacha) {
-    const fallback = fallbackResult(id, repeat);
+    const fallback = fallbackResult(resolvedSlug, repeat);
     return applyCookies(
       NextResponse.json(
         {

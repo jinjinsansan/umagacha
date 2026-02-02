@@ -10,7 +10,7 @@ import {
 import { GachaAnimationPreview } from "@/components/gacha/gacha-animation";
 import { GachaDrawPanel } from "@/components/gacha/gacha-draw-panel";
 import { GachaHistory } from "@/components/gacha/gacha-history";
-import { fetchGachaCatalog } from "@/lib/utils/gacha";
+import { buildGachaSearchKey, canonicalizeGachaId, fetchGachaCatalog } from "@/lib/utils/gacha";
 import { GACHA_DEFINITIONS } from "@/constants/gacha";
 
 type Params = {
@@ -32,18 +32,26 @@ function selectAnimation(range: [number, number]) {
 export default async function GachaDetailPage({ params }: Params) {
   type RateRow = { name: string; rarity: number; rate: number };
 
+  const requestedSlug = params.id;
+  const apiSlug = canonicalizeGachaId(requestedSlug) ?? requestedSlug.toLowerCase();
+  const ratesEndpointSlug = encodeURIComponent(apiSlug);
+  const searchKey = buildGachaSearchKey(requestedSlug) ?? apiSlug;
+
   const [catalog, ratesResp] = await Promise.all([
     fetchGachaCatalog(),
-    fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/gachas/${params.id}/rates`, {
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/gachas/${ratesEndpointSlug}/rates`, {
       cache: "no-store",
     }).then(async (res) => res.json().catch(() => ({ rates: [] }))),
   ]);
-  const detail = catalog.find((item) => item.id === params.id)
-    ?? GACHA_DEFINITIONS.find((item) => item.id === params.id);
+
+  const detail = catalog.find((item) => buildGachaSearchKey(item.id) === searchKey)
+    ?? GACHA_DEFINITIONS.find((item) => buildGachaSearchKey(item.id) === searchKey);
 
   if (!detail) {
     notFound();
   }
+
+  const resolvedGachaId = canonicalizeGachaId(detail.id) ?? detail.id;
 
   return (
     <div className="space-y-6">
@@ -58,7 +66,7 @@ export default async function GachaDetailPage({ params }: Params) {
           <CardDescription>価格: {detail.priceLabel}</CardDescription>
         </CardHeader>
         <CardContent className="mt-5 p-0">
-          <GachaDrawPanel gachaId={detail.id} />
+          <GachaDrawPanel gachaId={resolvedGachaId} />
         </CardContent>
       </Card>
 
