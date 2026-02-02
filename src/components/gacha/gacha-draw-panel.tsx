@@ -10,7 +10,7 @@ import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overla
 
 const CINEMATIC_SOURCES = [
   {
-    src: "/animations/gacha/uma-cinematic-2-mobile.mp4",
+    src: "/animations/gacha/uma-cinematic-2-portrait.mp4",
     type: "video/mp4",
   },
 ];
