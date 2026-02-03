@@ -9,7 +9,18 @@ import { motion } from "framer-motion";
 import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overlay";
 import { buildAssetUrl } from "@/lib/assets";
 
-const CINEMATIC_VARIANTS = [
+type CinematicVariant = {
+  id: string;
+  videoSources: {
+    src: string;
+    type?: string;
+    media?: string;
+  }[];
+  poster: string;
+  audio: string;
+};
+
+const CINEMATIC_VARIANTS: CinematicVariant[] = [
   {
     id: "cinematic-3",
     videoSources: [
@@ -28,8 +39,7 @@ const CINEMATIC_VARIANTS = [
     poster: buildAssetUrl("animations/gacha/uma-cinematic-2-poster-v2.jpg"),
     audio: buildAssetUrl("animations/gacha/uma-cinematic-2.m4a"),
   },
-] as const;
-type CinematicVariant = (typeof CINEMATIC_VARIANTS)[number];
+];
 export type DrawResult = {
   horseId: string;
   horse: string;
