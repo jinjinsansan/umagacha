@@ -42,10 +42,10 @@ const CINEMATIC_VARIANTS: CinematicVariant[] = [
   {
     id: "cinematic-4",
     videoSources: [
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v2.webm"), type: "video/webm" },
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v2.mp4"), type: "video/mp4" },
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v3.webm"), type: "video/webm" },
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v3.mp4"), type: "video/mp4" },
     ],
-    poster: buildAssetUrl("animations/gacha/uma-cinematic-4-poster-v2.jpg"),
+    poster: buildAssetUrl("animations/gacha/uma-cinematic-4-poster-v3.jpg"),
     audio: buildAssetUrl("animations/gacha/uma-cinematic-4.m4a"),
   },
 ];
