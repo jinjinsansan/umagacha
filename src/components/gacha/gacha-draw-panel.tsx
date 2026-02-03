@@ -42,10 +42,10 @@ const CINEMATIC_VARIANTS: CinematicVariant[] = [
   {
     id: "cinematic-4",
     videoSources: [
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v1.webm"), type: "video/webm" },
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v1.mp4"), type: "video/mp4" },
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v2.webm"), type: "video/webm" },
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v2.mp4"), type: "video/mp4" },
     ],
-    poster: buildAssetUrl("animations/gacha/uma-cinematic-4-poster-v1.jpg"),
+    poster: buildAssetUrl("animations/gacha/uma-cinematic-4-poster-v2.jpg"),
     audio: buildAssetUrl("animations/gacha/uma-cinematic-4.m4a"),
   },
 ];
@@ -85,6 +85,7 @@ export function GachaDrawPanel({ gachaId }: Props) {
   const [activeVariant, setActiveVariant] = useState<CinematicVariant>(CINEMATIC_VARIANTS[0]);
   const variantCursorRef = useRef(0);
   const audioSourceRef = useRef<string | null>(null);
+  const queuedVariantRef = useRef<CinematicVariant | null>(null);
   
   const highlight = useMemo(() => {
     if (!displayResults.length) return null;
@@ -125,13 +126,21 @@ export function GachaDrawPanel({ gachaId }: Props) {
     return variant;
   }, []);
 
+  const ensureQueuedVariant = useCallback(() => {
+    if (queuedVariantRef.current) {
+      return queuedVariantRef.current;
+    }
+    const variant = pickNextVariant();
+    queuedVariantRef.current = variant;
+    primeCinematicAudio(variant.audio);
+    return variant;
+  }, [pickNextVariant, primeCinematicAudio]);
+
   const runDraw = (repeat: number) => {
     setMessage(null);
     setWarning(null);
     setDisplayResults([]);
-    const upcomingVariant = pickNextVariant();
-    setActiveVariant(upcomingVariant);
-    primeCinematicAudio(upcomingVariant.audio);
+    ensureQueuedVariant();
     startTransition(async () => {
       try {
         const response = await fetch(`/api/gachas/${gachaId}/pull`, {
@@ -149,6 +158,9 @@ export function GachaDrawPanel({ gachaId }: Props) {
           if (data.warning) setWarning(data.warning);
           toast.success(`ガチャを${repeat}回実行しました`);
           if (data.results?.length) {
+            const variantForCinematic = queuedVariantRef.current ?? ensureQueuedVariant();
+            queuedVariantRef.current = null;
+            setActiveVariant(variantForCinematic);
             setCinematicResults(data.results);
             setCinematicOpen(true);
           } else {
