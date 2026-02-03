@@ -22,24 +22,6 @@ type CinematicVariant = {
 
 const CINEMATIC_VARIANTS: CinematicVariant[] = [
   {
-    id: "cinematic-3",
-    videoSources: [
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.webm"), type: "video/webm" },
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.mp4"), type: "video/mp4" },
-    ],
-    poster: buildAssetUrl("animations/gacha/uma-cinematic-3-poster-v3.jpg"),
-    audio: buildAssetUrl("animations/gacha/uma-cinematic-3-v3.m4a"),
-  },
-  {
-    id: "cinematic-2",
-    videoSources: [
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.webm"), type: "video/webm" },
-      { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.mp4"), type: "video/mp4" },
-    ],
-    poster: buildAssetUrl("animations/gacha/uma-cinematic-2-poster-v2.jpg"),
-    audio: buildAssetUrl("animations/gacha/uma-cinematic-2.m4a"),
-  },
-  {
     id: "cinematic-4",
     videoSources: [
       { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v3.webm"), type: "video/webm" },
@@ -89,44 +71,14 @@ export function GachaDrawPanel({ gachaId }: Props) {
   const [displayResults, setDisplayResults] = useState<DrawResult[]>([]);
   const [cinematicResults, setCinematicResults] = useState<DrawResult[] | null>(null);
   const [cinematicOpen, setCinematicOpen] = useState(false);
-  const [audioPrimed, setAudioPrimed] = useState(false);
-  const [cinematicAudio, setCinematicAudio] = useState<HTMLAudioElement | null>(null);
   const [activeVariant, setActiveVariant] = useState<CinematicVariant>(CINEMATIC_VARIANTS[0]);
   const variantCursorRef = useRef(0);
-  const audioSourceRef = useRef<string | null>(null);
   const queuedVariantRef = useRef<CinematicVariant | null>(null);
   
   const highlight = useMemo(() => {
     if (!displayResults.length) return null;
     return displayResults.reduce((top, current) => (current.rarity > top.rarity ? current : top), displayResults[0]);
   }, [displayResults]);
-
-  const primeCinematicAudio = useCallback(
-    (audioUrl: string) => {
-      if (audioPrimed && cinematicAudio && audioSourceRef.current === audioUrl) return;
-      const audio = new Audio(audioUrl);
-      audioSourceRef.current = audioUrl;
-      audio.preload = "auto";
-      audio.loop = false;
-      audio.volume = 0;
-      audio.muted = true;
-      const finalize = () => {
-        audio.pause();
-        audio.currentTime = 0;
-        audio.muted = false;
-        audio.volume = 0.85;
-        setCinematicAudio(audio);
-        setAudioPrimed(true);
-      };
-      const playPromise = audio.play();
-      if (playPromise) {
-        playPromise.then(finalize).catch(finalize);
-      } else {
-        finalize();
-      }
-    },
-    [audioPrimed, cinematicAudio],
-  );
 
   const pickNextVariant = useCallback(() => {
     const index = variantCursorRef.current % CINEMATIC_VARIANTS.length;
@@ -141,9 +93,8 @@ export function GachaDrawPanel({ gachaId }: Props) {
     }
     const variant = pickNextVariant();
     queuedVariantRef.current = variant;
-    primeCinematicAudio(variant.audio);
     return variant;
-  }, [pickNextVariant, primeCinematicAudio]);
+  }, [pickNextVariant]);
 
   const runDraw = (repeat: number) => {
     setMessage(null);
@@ -212,7 +163,6 @@ export function GachaDrawPanel({ gachaId }: Props) {
         videoSources={activeVariant.videoSources}
         posterSrc={activeVariant.poster}
         audioSrc={activeVariant.audio}
-        primedAudio={audioPrimed ? cinematicAudio ?? undefined : undefined}
       />
       <div className="flex flex-wrap gap-2">
         <Button className="flex-1" disabled={pending || cinematicOpen} onClick={() => runDraw(1)}>

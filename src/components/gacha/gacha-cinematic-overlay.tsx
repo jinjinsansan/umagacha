@@ -19,7 +19,6 @@ type CinematicOverlayProps = {
   }[];
   posterSrc?: string;
   audioSrc?: string;
-  primedAudio?: HTMLAudioElement;
 };
 
 type Phase = "video" | "fade" | "result";
@@ -80,7 +79,6 @@ export function GachaCinematicOverlay({
   videoSources = DEFAULT_VIDEO_SOURCES,
   posterSrc,
   audioSrc,
-  primedAudio,
 }: CinematicOverlayProps) {
   const [phase, setPhase] = useState<Phase>("video");
   const [fadeProgress, setFadeProgress] = useState(0);
@@ -145,14 +143,9 @@ export function GachaCinematicOverlay({
 
   useEffect(() => {
     if (!open) return;
-    const usingPrimed = Boolean(primedAudio);
-    const media = (() => {
-      if (primedAudio) return primedAudio;
-      const created = new Audio(audioSrc ?? DEFAULT_AUDIO);
-      created.loop = false;
-      created.volume = 0.85;
-      return created;
-    })();
+    const media = new Audio(audioSrc ?? DEFAULT_AUDIO);
+    media.loop = false;
+    media.volume = 0.85;
     media.currentTime = 0;
     const playPromise = media.play();
     if (playPromise) {
@@ -160,11 +153,9 @@ export function GachaCinematicOverlay({
     }
     audioRef.current = media;
     return () => {
-      if (!usingPrimed) {
-        media.pause();
-      }
+      media.pause();
     };
-  }, [open, audioSrc, primedAudio]);
+  }, [open, audioSrc]);
 
   useEffect(() => {
     const uniqueSources = Array.from(new Set(videoSources.map((source) => source.src)));
