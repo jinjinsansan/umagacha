@@ -60,3 +60,38 @@ a {
   background-color: var(--color-accent);
   color: #0b0b0b;
 }
+
+/* Hide all video controls and overlays */
+video::-webkit-media-controls {
+  display: none !important;
+  opacity: 0;
+  visibility: hidden;
+}
+
+video::-webkit-media-controls-enclosure {
+  display: none !important;
+}
+
+video::-webkit-media-controls-panel {
+  display: none !important;
+}
+
+video::-webkit-media-controls-play-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-start-playback-button {
+  display: none !important;
+}
+
+video::-moz-media-controls {
+  display: none !important;
+}
+
+video::--webkit-media-controls-overlay-enclosure {
+  display: none !important;
+}
+
+video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+}

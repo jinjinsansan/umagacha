@@ -264,14 +264,18 @@ export function GachaCinematicOverlay({
             <video
               key={videoSourceKey}
               ref={videoRef}
-              className="absolute inset-0 w-screen h-screen object-cover"
+              className="absolute inset-0 w-screen h-screen object-cover [&::-webkit-media-controls]:hidden [&::-webkit-media-controls-enclosure]:hidden [&::-webkit-media-controls-panel]:hidden"
               playsInline
               autoPlay
               muted
               preload="auto"
               poster={posterSrc}
+              disablePictureInPicture
+              disableRemotePlayback
+              x-webkit-airplay="deny"
               onEnded={startFade}
               onLoadedMetadata={handleLoadedMetadata}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               {videoSources.map((source) => (
                 <source key={source.src} src={source.src} type={source.type} media={source.media} />
