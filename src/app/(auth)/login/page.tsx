@@ -48,7 +48,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <Card>
         <CardHeader className="p-0">
           <CardTitle>メールログイン</CardTitle>
-          <CardDescription>Supabase Authと連携するフォームです。</CardDescription>
+          <CardDescription>メール認証で今すぐ UMA Royale へログイン。</CardDescription>
         </CardHeader>
         <CardContent className="mt-6 p-0">
           <LoginForm />
