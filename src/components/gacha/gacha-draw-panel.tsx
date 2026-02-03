@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useRef, useState, useTransition } from "react";
 import { Loader2, Ticket, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,27 @@ import { motion } from "framer-motion";
 import { GachaCinematicOverlay } from "@/components/gacha/gacha-cinematic-overlay";
 import { buildAssetUrl } from "@/lib/assets";
 
-const CINEMATIC_SOURCES = [
+const CINEMATIC_VARIANTS = [
   {
-    src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.webm"),
-    type: "video/webm",
+    id: "cinematic-3",
+    videoSources: [
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.webm"), type: "video/webm" },
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.mp4"), type: "video/mp4" },
+    ],
+    poster: buildAssetUrl("animations/gacha/uma-cinematic-3-poster-v3.jpg"),
+    audio: buildAssetUrl("animations/gacha/uma-cinematic-3-v3.m4a"),
   },
   {
-    src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.mp4"),
-    type: "video/mp4",
+    id: "cinematic-2",
+    videoSources: [
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.webm"), type: "video/webm" },
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.mp4"), type: "video/mp4" },
+    ],
+    poster: buildAssetUrl("animations/gacha/uma-cinematic-2-poster-v2.jpg"),
+    audio: buildAssetUrl("animations/gacha/uma-cinematic-2.m4a"),
   },
-];
-const CINEMATIC_POSTER = buildAssetUrl("animations/gacha/uma-cinematic-3-poster-v3.jpg");
-const CINEMATIC_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-3-v3.m4a");
+] as const;
+type CinematicVariant = (typeof CINEMATIC_VARIANTS)[number];
 export type DrawResult = {
   horseId: string;
   horse: string;
@@ -54,40 +63,56 @@ export function GachaDrawPanel({ gachaId }: Props) {
   const [cinematicOpen, setCinematicOpen] = useState(false);
   const [audioPrimed, setAudioPrimed] = useState(false);
   const [cinematicAudio, setCinematicAudio] = useState<HTMLAudioElement | null>(null);
+  const [activeVariant, setActiveVariant] = useState<CinematicVariant>(CINEMATIC_VARIANTS[0]);
+  const variantCursorRef = useRef(0);
+  const audioSourceRef = useRef<string | null>(null);
   
   const highlight = useMemo(() => {
     if (!displayResults.length) return null;
     return displayResults.reduce((top, current) => (current.rarity > top.rarity ? current : top), displayResults[0]);
   }, [displayResults]);
 
-  const primeCinematicAudio = useCallback(() => {
-    if (audioPrimed && cinematicAudio) return;
-    const audio = new Audio(CINEMATIC_AUDIO);
-    audio.preload = "auto";
-    audio.loop = false;
-    audio.volume = 0;
-    audio.muted = true;
-    const finalize = () => {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.muted = false;
-      audio.volume = 0.85;
-      setCinematicAudio(audio);
-      setAudioPrimed(true);
-    };
-    const playPromise = audio.play();
-    if (playPromise) {
-      playPromise.then(finalize).catch(finalize);
-    } else {
-      finalize();
-    }
-  }, [audioPrimed, cinematicAudio]);
+  const primeCinematicAudio = useCallback(
+    (audioUrl: string) => {
+      if (audioPrimed && cinematicAudio && audioSourceRef.current === audioUrl) return;
+      const audio = new Audio(audioUrl);
+      audioSourceRef.current = audioUrl;
+      audio.preload = "auto";
+      audio.loop = false;
+      audio.volume = 0;
+      audio.muted = true;
+      const finalize = () => {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.muted = false;
+        audio.volume = 0.85;
+        setCinematicAudio(audio);
+        setAudioPrimed(true);
+      };
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.then(finalize).catch(finalize);
+      } else {
+        finalize();
+      }
+    },
+    [audioPrimed, cinematicAudio],
+  );
+
+  const pickNextVariant = useCallback(() => {
+    const index = variantCursorRef.current % CINEMATIC_VARIANTS.length;
+    const variant = CINEMATIC_VARIANTS[index];
+    variantCursorRef.current = index + 1;
+    return variant;
+  }, []);
 
   const runDraw = (repeat: number) => {
     setMessage(null);
     setWarning(null);
     setDisplayResults([]);
-    primeCinematicAudio();
+    const upcomingVariant = pickNextVariant();
+    setActiveVariant(upcomingVariant);
+    primeCinematicAudio(upcomingVariant.audio);
     startTransition(async () => {
       try {
         const response = await fetch(`/api/gachas/${gachaId}/pull`, {
@@ -144,9 +169,9 @@ export function GachaDrawPanel({ gachaId }: Props) {
         open={cinematicOpen}
         results={cinematicResults ?? []}
         onFinish={handleCinematicFinish}
-        videoSources={CINEMATIC_SOURCES}
-        posterSrc={CINEMATIC_POSTER}
-        audioSrc={CINEMATIC_AUDIO}
+        videoSources={activeVariant.videoSources}
+        posterSrc={activeVariant.poster}
+        audioSrc={activeVariant.audio}
         primedAudio={audioPrimed ? cinematicAudio ?? undefined : undefined}
       />
       <div className="flex flex-wrap gap-2">
