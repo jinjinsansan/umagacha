@@ -110,7 +110,7 @@ export function SplashGateway() {
                   ))}
                 </div>
                 <p className="text-sm text-text-muted">
-                  重厚なガチャ演出と暗号通貨決済を備えた競馬コレクション体験。
+                  歴代の名馬をコレクションする究極のガチャ体験。
                 </p>
               </div>
               <div className="flex w-full flex-col gap-3">
