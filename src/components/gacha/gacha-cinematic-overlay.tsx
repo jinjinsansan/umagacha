@@ -24,6 +24,7 @@ type CinematicOverlayProps = {
 
 type Phase = "video" | "fade" | "result";
 type TimelineState = {
+  ember: boolean;
   snow: boolean;
   logo: boolean;
   gold: boolean;
@@ -31,10 +32,10 @@ type TimelineState = {
 
 const FADE_DURATION = 800;
 const DEFAULT_VIDEO_SOURCES = [
-  { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.webm"), type: "video/webm" },
-  { src: buildAssetUrl("animations/gacha/uma-cinematic-2-portrait-v4.mp4"), type: "video/mp4" },
+  { src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v1.webm"), type: "video/webm" },
+  { src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v1.mp4"), type: "video/mp4" },
 ];
-const DEFAULT_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-2.m4a");
+const DEFAULT_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-3.m4a");
 const LOGO_ASSET = buildAssetUrl("assets/uma-royale-logo-transparent.png");
 
 type Particle = {
@@ -70,6 +71,7 @@ const createParticles = (count: number, sizeBase: number, sizeRange: number, dur
 
 const SNOW_PARTICLES = createParticles(32, 2, 2.5, 3.5, 3.5, 40, "snow");
 const GOLD_PARTICLES = createParticles(24, 3, 4, 2.5, 2.5, 30, "gold");
+const RED_PARTICLES = createParticles(28, 3, 4, 1.4, 1.1, 18, "ember-red");
 
 export function GachaCinematicOverlay({
   open,
@@ -82,7 +84,7 @@ export function GachaCinematicOverlay({
 }: CinematicOverlayProps) {
   const [phase, setPhase] = useState<Phase>("video");
   const [fadeProgress, setFadeProgress] = useState(0);
-  const [timelineState, setTimelineState] = useState<TimelineState>({ snow: false, logo: false, gold: false });
+  const [timelineState, setTimelineState] = useState<TimelineState>({ ember: false, snow: false, logo: false, gold: false });
   const [videoReady, setVideoReady] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -108,7 +110,7 @@ export function GachaCinematicOverlay({
   }, []);
 
   const resetTimeline = useCallback(() => {
-    setTimelineState({ snow: false, logo: false, gold: false });
+    setTimelineState({ ember: false, snow: false, logo: false, gold: false });
   }, []);
 
   const handleLoadedMetadata = useCallback(() => {
@@ -212,6 +214,7 @@ export function GachaCinematicOverlay({
     const trackTimeline = () => {
       const current = videoRef.current?.currentTime ?? 0;
       const next: TimelineState = {
+        ember: current >= 0 && current < 5,
         snow: current >= 5 && current < 10,
         logo: current >= 15 && current < 17,
         gold: current >= 17 && current < 20,
@@ -287,6 +290,7 @@ export function GachaCinematicOverlay({
 
           <div className="pointer-events-none absolute inset-0">
             <AnimatePresence>
+              {timelineState.ember ? <RedParticleLayer key="ember-layer" /> : null}
               {timelineState.snow ? <SnowLayer key="snow-layer" /> : null}
               {timelineState.logo ? <LogoPulse key="logo-layer" /> : null}
               {timelineState.gold ? <GoldLayer key="gold-layer" /> : null}
@@ -379,6 +383,41 @@ const SnowLayer = () => (
           left: `${particle.left}%`,
           width: particle.size,
           height: particle.size,
+        }}
+      />
+    ))}
+  </motion.div>
+);
+
+const RedParticleLayer = () => (
+  <motion.div
+    className="pointer-events-none absolute inset-0 overflow-hidden"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.4 }}
+  >
+    {RED_PARTICLES.map((particle) => (
+      <motion.span
+        key={particle.id}
+        className="absolute rounded-full bg-red-500/80 shadow-[0_0_20px_rgba(248,113,113,0.65)] mix-blend-screen"
+        initial={{ y: "110%", scale: 0.6, opacity: 0 }}
+        animate={{
+          y: ["110%", "-10%"],
+          x: ["0%", `${particle.drift}%`],
+          opacity: [0, 1, 0],
+          scale: [0.6, 1, 0.8],
+        }}
+        transition={{
+          duration: particle.duration,
+          delay: particle.delay,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+        style={{
+          left: `${particle.left}%`,
+          width: particle.size * 1.4,
+          height: particle.size * 1.4,
         }}
       />
     ))}
