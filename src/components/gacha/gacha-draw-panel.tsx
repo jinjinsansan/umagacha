@@ -39,6 +39,15 @@ const CINEMATIC_VARIANTS: CinematicVariant[] = [
     poster: buildAssetUrl("animations/gacha/uma-cinematic-2-poster-v2.jpg"),
     audio: buildAssetUrl("animations/gacha/uma-cinematic-2.m4a"),
   },
+  {
+    id: "cinematic-4",
+    videoSources: [
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v1.webm"), type: "video/webm" },
+      { src: buildAssetUrl("animations/gacha/uma-cinematic-4-portrait-v1.mp4"), type: "video/mp4" },
+    ],
+    poster: buildAssetUrl("animations/gacha/uma-cinematic-4-poster-v1.jpg"),
+    audio: buildAssetUrl("animations/gacha/uma-cinematic-4.m4a"),
+  },
 ];
 export type DrawResult = {
   horseId: string;
