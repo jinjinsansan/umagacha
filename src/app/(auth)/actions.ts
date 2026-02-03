@@ -117,5 +117,5 @@ export async function requestPasswordResetAction(
 export async function signOutAction() {
   const supabase = getSupabaseActionClient();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/");
 }
