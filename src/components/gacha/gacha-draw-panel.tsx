@@ -11,16 +11,16 @@ import { buildAssetUrl } from "@/lib/assets";
 
 const CINEMATIC_SOURCES = [
   {
-    src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v2.webm"),
+    src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.webm"),
     type: "video/webm",
   },
   {
-    src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v2.mp4"),
+    src: buildAssetUrl("animations/gacha/uma-cinematic-3-portrait-v3.mp4"),
     type: "video/mp4",
   },
 ];
-const CINEMATIC_POSTER = buildAssetUrl("animations/gacha/uma-cinematic-3-poster-v2.jpg");
-const CINEMATIC_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-3-v2.m4a");
+const CINEMATIC_POSTER = buildAssetUrl("animations/gacha/uma-cinematic-3-poster-v3.jpg");
+const CINEMATIC_AUDIO = buildAssetUrl("animations/gacha/uma-cinematic-3-v3.m4a");
 export type DrawResult = {
   horseId: string;
   horse: string;
